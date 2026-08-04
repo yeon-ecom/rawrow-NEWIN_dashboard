@@ -22,6 +22,14 @@
   .updated{font-size:12px;color:var(--gray-500);font-variant-numeric:tabular-nums;}
   .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle;}
   .status-live{background:var(--yellow);}
+  /* Upload toggle */
+  .up-toggle{margin-top:20px;display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--gray-100);border-radius:4px;cursor:pointer;user-select:none;}
+  .up-toggle:hover{background:#eaeaea;}
+  .up-toggle-label{font-size:13px;font-weight:700;color:var(--black);}
+  .up-toggle-hint{font-size:12px;color:var(--gray-500);}
+  .up-adv{margin-top:16px;border-top:1px solid var(--line);padding-top:12px;}
+  .up-adv summary{font-size:12px;font-weight:600;color:var(--gray-500);cursor:pointer;}
+  .up-adv summary:hover{color:var(--black);}
   /* Upload zone */
   .uploader{margin-top:20px;border:1.5px dashed var(--gray-300);border-radius:4px;padding:20px;background:var(--gray-100);transition:all .15s;}
   .uploader.drag{border-color:var(--yellow);background:#FFF8EC;}
@@ -97,25 +105,42 @@
     </div>
   </header>
 
-  <div class="uploader" id="uploader">
-    <div class="up-row">
-      <div class="up-slot">
-        <span class="lab">① Cafe24 로우데이터 (.csv)</span>
-        <label class="up-btn">파일 선택 / 드래그<input type="file" id="fileCafe24" accept=".csv" hidden></label>
-        <span class="up-state wait" id="stCafe24">대기 중</span>
-      </div>
-      <div class="up-slot">
-        <span class="lab">② 네이버 스마트스토어 (.xlsx)</span>
-        <label class="up-btn">파일 선택 / 드래그<input type="file" id="fileNaver" accept=".xlsx,.xls" hidden></label>
-        <span class="up-state wait" id="stNaver">대기 중</span>
-      </div>
+  <div class="up-toggle" id="upToggle">
+    <span class="up-toggle-label">＋ 데이터 넣기 / 업데이트</span>
+    <span class="up-toggle-hint" id="upToggleHint"></span>
+  </div>
+  <div class="uploader" id="uploader" style="display:none;">
+    <div class="up-slot" style="max-width:520px;">
+      <span class="lab">통합 CSV 넣기</span>
+      <label class="up-btn">파일 선택 / 드래그<input type="file" id="fileMerged" accept=".csv" hidden></label>
+      <span class="up-state wait" id="stMerged">대기 중</span>
     </div>
     <div class="up-actions">
-      <button class="btn-run" id="runBtn" disabled>가공해서 차트 그리기</button>
-      <button class="btn-ghost" id="dlBtn">통합 CSV 내려받기</button>
+      <button class="btn-run" id="runMergedBtn" disabled>차트 그리기</button>
       <span class="up-msg" id="upMsg"></span>
     </div>
-    <div class="up-hint">발매정보(바코드↔컬러 매핑)는 대시보드에 내장되어 있어요. 새 시리즈가 나오면 발매정보 갱신본만 알려주세요. · 파일은 브라우저 안에서만 처리되고 어디에도 업로드되지 않습니다.</div>
+    <div class="up-hint">Claude가 만들어준 <b>통합 CSV</b> 하나만 넣으면 됩니다. · 파일은 브라우저 안에서만 처리되고 어디에도 업로드되지 않습니다.</div>
+
+    <details class="up-adv">
+      <summary>원본 로우데이터로 직접 가공하기 (Cafe24 + 네이버)</summary>
+      <div class="up-row" style="margin-top:14px;">
+        <div class="up-slot">
+          <span class="lab">① Cafe24 로우데이터 (.csv)</span>
+          <label class="up-btn">파일 선택 / 드래그<input type="file" id="fileCafe24" accept=".csv" hidden></label>
+          <span class="up-state wait" id="stCafe24">대기 중</span>
+        </div>
+        <div class="up-slot">
+          <span class="lab">② 네이버 스마트스토어 (.xlsx)</span>
+          <label class="up-btn">파일 선택 / 드래그<input type="file" id="fileNaver" accept=".xlsx,.xls" hidden></label>
+          <span class="up-state wait" id="stNaver">대기 중</span>
+        </div>
+      </div>
+      <div class="up-actions">
+        <button class="btn-run" id="runBtn" disabled>가공해서 차트 그리기</button>
+        <button class="btn-ghost" id="dlBtn">통합 CSV 내려받기</button>
+      </div>
+      <div class="up-hint">발매정보 매핑은 내장되어 있어요. 새 시리즈가 나오면 발매정보 갱신본만 Claude에게 주세요.</div>
+    </details>
   </div>
 
   <div class="filters">
@@ -273,13 +298,50 @@ document.getElementById('dlBtn').addEventListener('click',()=>{
   a.href=URL.createObjectURL(blob);a.download='통합_신제품판매.csv';a.click();
 });
 
+// 업로드 영역 접기/펴기
+const upToggle=document.getElementById('upToggle'),uploaderEl=document.getElementById('uploader');
+upToggle.addEventListener('click',()=>{
+  const open=uploaderEl.style.display!=='none';
+  uploaderEl.style.display=open?'none':'block';
+  upToggle.querySelector('.up-toggle-label').textContent=(open?'＋':'－')+' 데이터 넣기 / 업데이트';
+});
+
+// ---- 통합 CSV 하나로 넣기 (기본 경로) ----
+let mergedRows=null;
+function readMerged(file){
+  Papa.parse(file,{header:true,skipEmptyLines:true,complete:res=>{
+    mergedRows=res.data;
+    const st=document.getElementById('stMerged');st.className='up-state ok';st.textContent='✓ '+file.name+' ('+res.data.length+'행)';
+    document.getElementById('runMergedBtn').disabled=false;
+  },error:()=>{const st=document.getElementById('stMerged');st.className='up-state err';st.textContent='읽기 실패';}});
+}
+function runMerged(){
+  const msg=document.getElementById('upMsg');
+  if(!mergedRows){msg.className='up-msg err';msg.textContent='통합 CSV를 넣어주세요.';return;}
+  try{
+    const parsed=dedupNormalized(mergedRows.map(normalize).filter(r=>r.date&&r.barcode));
+    if(!parsed.length){msg.className='up-msg err';msg.textContent='읽을 데이터가 없어요. 통합 CSV 형식인지 확인해주세요.';return;}
+    lastProcessed=mergedRows;RAW=parsed;
+    activeMonth='all';activeSeries='all';activeCh='all';seriesOn={};seriesColor={};assignSeriesColors();
+    document.querySelectorAll('.chip.ch').forEach(x=>x.classList.remove('active'));
+    document.querySelector('.chip.ch[data-ch="all"]').classList.add('active');
+    document.getElementById('dataStatus').innerHTML='<span class="status-dot status-live"></span>업로드 데이터 반영됨';
+    buildMonthChips();buildSeriesChips();renderAll();
+    const rev=RAW.reduce((s,d)=>s+d.rev,0),qty=RAW.reduce((s,d)=>s+d.qty,0);
+    msg.className='up-msg ok';msg.textContent=`완료 · ${RAW.length}행 · 매출 ${won(rev)}원 / ${qty}개`;
+  }catch(e){msg.className='up-msg err';msg.textContent='처리 오류: '+e.message;}
+}
+document.getElementById('fileMerged').addEventListener('change',e=>{if(e.target.files[0])readMerged(e.target.files[0]);});
+document.getElementById('runMergedBtn').addEventListener('click',runMerged);
+
+
 // 드래그앤드롭
 const uz=document.getElementById('uploader');
 ['dragenter','dragover'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.add('drag');}));
 ['dragleave','drop'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();if(ev==='dragleave'&&e.target!==uz)return;uz.classList.remove('drag');}));
 uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag');
   [...e.dataTransfer.files].forEach(f=>{const n=f.name.toLowerCase();
-    if(n.endsWith('.csv'))readCafe24(f);else if(n.endsWith('.xlsx')||n.endsWith('.xls'))readNaver(f);});});
+    if(n.endsWith('.csv'))readMerged(f);else if(n.endsWith('.xlsx')||n.endsWith('.xls'))readNaver(f);});});
 
 // ================= 차트 =================
 function assignSeriesColors(){const all=[...new Set(RAW.map(d=>d.series))].filter(Boolean);all.forEach((s,i)=>{if(!seriesColor[s])seriesColor[s]=SERIES_PALETTE[i%SERIES_PALETTE.length];if(seriesOn[s]===undefined)seriesOn[s]=true;});}
