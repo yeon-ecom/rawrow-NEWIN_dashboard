@@ -56,6 +56,29 @@
   .chip:hover{border-color:var(--black);}
   .chip.active{background:var(--black);color:var(--white);border-color:var(--black);}
   .chip.series.active{background:var(--yellow);color:var(--black);border-color:var(--yellow);}
+  .chip.brand-chip.active{background:var(--black);color:var(--white);border-color:var(--black);}
+  /* Series multi-select */
+  .series-select{position:relative;}
+  .ss-btn{display:inline-flex;align-items:center;gap:10px;padding:7px 14px;border:1px solid var(--gray-300);background:var(--white);border-radius:100px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--black);font-family:inherit;}
+  .ss-btn:hover{border-color:var(--black);}
+  .ss-caret{color:var(--gray-500);font-size:10px;}
+  .ss-panel{position:absolute;top:calc(100% + 6px);left:0;z-index:50;width:280px;background:var(--white);border:1px solid var(--gray-300);border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.12);padding:10px;}
+  .ss-tools{display:flex;gap:6px;margin-bottom:8px;}
+  .ss-tools input{flex:1;min-width:0;padding:7px 10px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;font-family:inherit;}
+  .ss-tools input:focus{outline:2px solid var(--yellow);border-color:var(--yellow);}
+  .ss-mini{padding:6px 10px;border:1px solid var(--gray-300);background:var(--white);border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;color:var(--gray-700);}
+  .ss-mini:hover{border-color:var(--black);}
+  .ss-list{max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
+  .ss-item{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:4px;font-size:12.5px;cursor:pointer;user-select:none;}
+  .ss-item:hover{background:var(--gray-100);}
+  .ss-item .ss-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .ss-item .ss-check{margin-left:auto;color:var(--yellow);font-weight:800;visibility:hidden;}
+  .ss-item.on .ss-check{visibility:visible;}
+  .ss-item .ss-mon{font-size:10px;color:var(--gray-500);margin-left:4px;}
+  .rank-sort{display:flex;align-items:center;gap:8px;}
+  .rank-sort-label{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--gray-500);}
+  .chip.rk{padding:6px 13px;font-size:12px;}
+  .chip.rk.active{background:var(--yellow);color:var(--black);border-color:var(--yellow);}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);margin:24px 0;border:1px solid var(--line);}
   .kpi{background:var(--white);padding:22px 20px;}
   .kpi .k-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray-500);font-weight:700;margin-bottom:10px;}
@@ -97,7 +120,6 @@
     <div class="brand">
       <span class="kicker">RAWROW · NEW PRODUCT TRACKER</span>
       <h1>신제품 판매 <span class="accent">추이</span></h1>
-      <span class="prod" id="prodLine">—</span>
     </div>
     <div class="header-right">
       <span class="updated" id="dataStatus"><span class="status-dot status-live"></span>샘플 데이터</span>
@@ -122,33 +144,56 @@
     <div class="up-hint">Claude가 만들어준 <b>통합 CSV</b> 하나만 넣으면 됩니다. · 파일은 브라우저 안에서만 처리되고 어디에도 업로드되지 않습니다.</div>
 
     <details class="up-adv">
-      <summary>원본 로우데이터로 직접 가공하기 (Cafe24 + 네이버)</summary>
-      <div class="up-row" style="margin-top:14px;">
+      <summary>원본 로우데이터로 직접 가공하기</summary>
+      <div class="up-slot" style="margin-top:14px;max-width:520px;">
+        <span class="lab">통합 엑셀 1개 (탭: 발매정보 · 카페24_RAWDATA · 네이버_RAWDATA)</span>
+        <label class="up-btn">파일 선택 / 드래그<input type="file" id="fileBook" accept=".xlsx,.xls" hidden></label>
+        <span class="up-state wait" id="stBook">대기 중</span>
+      </div>
+      <div class="up-actions">
+        <button class="btn-run" id="runBookBtn" disabled>가공해서 차트 그리기</button>
+        <button class="btn-ghost" id="dlBtn">통합 CSV 내려받기</button>
+      </div>
+      <div class="up-hint">엑셀 하나에 세 탭으로 담아 올리면 이 안에서 바로 가공됩니다. · 또는 아래에서 파일을 따로 올릴 수도 있어요.</div>
+      <div class="up-row" style="margin-top:14px;border-top:1px dashed var(--line);padding-top:14px;">
         <div class="up-slot">
           <span class="lab">① Cafe24 로우데이터 (.csv)</span>
-          <label class="up-btn">파일 선택 / 드래그<input type="file" id="fileCafe24" accept=".csv" hidden></label>
+          <label class="up-btn">파일 선택<input type="file" id="fileCafe24" accept=".csv" hidden></label>
           <span class="up-state wait" id="stCafe24">대기 중</span>
         </div>
         <div class="up-slot">
           <span class="lab">② 네이버 스마트스토어 (.xlsx)</span>
-          <label class="up-btn">파일 선택 / 드래그<input type="file" id="fileNaver" accept=".xlsx,.xls" hidden></label>
+          <label class="up-btn">파일 선택<input type="file" id="fileNaver" accept=".xlsx,.xls" hidden></label>
           <span class="up-state wait" id="stNaver">대기 중</span>
         </div>
       </div>
       <div class="up-actions">
-        <button class="btn-run" id="runBtn" disabled>가공해서 차트 그리기</button>
-        <button class="btn-ghost" id="dlBtn">통합 CSV 내려받기</button>
+        <button class="btn-run" id="runBtn" disabled>가공해서 차트 그리기 (파일 2개)</button>
       </div>
       <div class="up-hint">발매정보 매핑은 내장되어 있어요. 새 시리즈가 나오면 발매정보 갱신본만 Claude에게 주세요.</div>
     </details>
   </div>
 
   <div class="filters">
+    <span class="flabel">브랜드</span>
+    <div id="brandChips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    <div class="divider"></div>
     <span class="flabel">발매월</span>
     <div id="monthChips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-    <div class="divider"></div>
+  </div>
+  <div class="filters" style="margin-top:4px;">
     <span class="flabel">시리즈</span>
-    <div id="seriesChips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    <div class="series-select" id="seriesSelect">
+      <button class="ss-btn" id="ssBtn" type="button"><span id="ssLabel">전체 시리즈</span><span class="ss-caret">▾</span></button>
+      <div class="ss-panel" id="ssPanel" style="display:none;">
+        <div class="ss-tools">
+          <input type="text" id="ssSearch" placeholder="시리즈 검색…">
+          <button class="ss-mini" id="ssAll">전체</button>
+          <button class="ss-mini" id="ssNone">해제</button>
+        </div>
+        <div class="ss-list" id="ssList"></div>
+      </div>
+    </div>
   </div>
   <div class="filters" style="margin-top:4px;">
     <span class="flabel">채널</span>
@@ -166,20 +211,35 @@
   <div class="grid">
     <div class="card full">
       <h2>발매 후 누적 판매 <span style="font-weight:600;color:var(--gray-500);font-size:12px;">시리즈별 · D+N</span></h2>
-      <p class="csub">발매일(D0) 기준 경과일별 누적 판매 개수 — 아래 토글로 시리즈를 접었다 펼 수 있어요</p>
       <div class="series-toggles" id="seriesToggles"></div>
       <div class="chart-box tall"><canvas id="cumChart"></canvas></div>
     </div>
     <div class="card">
-      <h2>컬러별 성과</h2><p class="csub">어떤 컬러가 가장 잘 나가는가</p>
+      <div class="card-head">
+        <h2>컬러별 성과</h2>
+        <div class="series-select" id="colorSeriesSelect">
+          <button class="ss-btn" id="csBtn" type="button" style="padding:5px 12px;font-size:11.5px;"><span id="csLabel">전체 시리즈</span><span class="ss-caret">▾</span></button>
+          <div class="ss-panel" id="csPanel" style="display:none;right:0;left:auto;">
+            <div class="ss-tools"><input type="text" id="csSearch" placeholder="시리즈 검색…"><button class="ss-mini" id="csAll">전체</button></div>
+            <div class="ss-list" id="csList"></div>
+          </div>
+        </div>
+      </div>
       <div class="chart-box"><canvas id="colorChart"></canvas></div>
     </div>
     <div class="card">
-      <h2>채널 비중</h2><p class="csub">네이버 vs 자사몰</p>
+      <h2>채널 비중</h2>
       <div class="chart-box"><canvas id="channelChart"></canvas></div>
     </div>
     <div class="card full">
-      <h2>상품 × 컬러 판매 순위</h2><p class="csub">선택 범위 누적 · 매출 기준 정렬</p>
+      <div class="card-head">
+        <div><h2>상품 × 컬러 판매 순위</h2></div>
+        <div class="rank-sort">
+          <span class="rank-sort-label">정렬</span>
+          <div class="chip rk active" data-rk="rev">매출순</div>
+          <div class="chip rk" data-rk="qty">판매량순</div>
+        </div>
+      </div>
       <table id="rankTable"><thead><tr><th>상품</th><th>컬러</th><th>판매량</th><th>매출</th><th class="bar-cell">비중</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
@@ -193,8 +253,8 @@
 <script>
 // 구글시트 통합 탭 게시 CSV URL. 채우면 열자마자 시트를 자동으로 읽습니다.
 const SHEET_CSV_URL = "";
-const LAUNCH = [{"바코드": "RTR9334NAZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "NAVY", "발매일": "2026-07-13"}, {"바코드": "RTR9334OLZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "OLIVE", "발매일": "2026-07-13"}, {"바코드": "RTR9334SIZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "SILVER", "발매일": "2026-07-13"}, {"바코드": "RTR9334YMZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "YELLOW MUSTARD", "발매일": "2026-07-13"}, {"바코드": "RTR9434NAZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "NAVY", "발매일": "2026-07-13"}, {"바코드": "RTR9434OLZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "OLIVE", "발매일": "2026-07-13"}, {"바코드": "RTR9434SIZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "SILVER", "발매일": "2026-07-13"}, {"바코드": "RTR9434YMZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "YELLOW MUSTARD", "발매일": "2026-07-13"}, {"바코드": "RTR9534NAZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "NAVY", "발매일": "2026-07-13"}, {"바코드": "RTR9534OLZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "OLIVE", "발매일": "2026-07-13"}, {"바코드": "RTR9534SIZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "발매일": "2026-07-13"}, {"바코드": "RTR9534YMZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "YELLOW MUSTARD", "발매일": "2026-07-13"}, {"바코드": "RTR9634NAZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "NAVY", "발매일": "2026-07-13"}, {"바코드": "RTR9634OLZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "OLIVE", "발매일": "2026-07-13"}, {"바코드": "RTR9634SIZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "SILVER", "발매일": "2026-07-13"}, {"바코드": "RTR9634YMZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "YELLOW MUSTARD", "발매일": "2026-07-13"}];
-const SEED = [{"날짜": "2026-07-13", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9634NAZF", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "NAVY", "수량": 1, "매출": 400923, "발매일": "2026-07-13"}, {"날짜": "2026-07-14", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9534OLZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "OLIVE", "수량": 1, "매출": 454800, "발매일": "2026-07-13"}, {"날짜": "2026-07-14", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 352470, "발매일": "2026-07-13"}, {"날짜": "2026-07-14", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9334SIZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "SILVER", "수량": 1, "매출": 464070, "발매일": "2026-07-13"}, {"날짜": "2026-07-21", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9634SIZF", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "SILVER", "수량": 1, "매출": 445470, "발매일": "2026-07-13"}, {"날짜": "2026-07-21", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9334SIZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "SILVER", "수량": 1, "매출": 442563, "발매일": "2026-07-13"}, {"날짜": "2026-07-21", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9434SIZF", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "SILVER", "수량": 1, "매출": 426870, "발매일": "2026-07-13"}, {"날짜": "2026-07-22", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9334SIZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "SILVER", "수량": 1, "매출": 885940, "발매일": "2026-07-13"}, {"날짜": "2026-07-22", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9334SIZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "SILVER", "수량": 1, "매출": 885940, "발매일": "2026-07-13"}, {"날짜": "2026-07-22", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9434SIZF", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "SILVER", "수량": 1, "매출": 885940, "발매일": "2026-07-13"}, {"날짜": "2026-07-27", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9334SIZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "SILVER", "수량": 1, "매출": 404190, "발매일": "2026-07-13"}, {"날짜": "2026-07-27", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 379000, "발매일": "2026-07-13"}, {"날짜": "2026-07-28", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9634OLZF", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "OLIVE", "수량": 1, "매출": 366430, "발매일": "2026-07-13"}, {"날짜": "2026-07-28", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9534NAZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "NAVY", "수량": 1, "매출": 189500, "발매일": "2026-07-13"}, {"날짜": "2026-07-28", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 619000, "발매일": "2026-07-13"}, {"날짜": "2026-07-30", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9434OLZF", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "OLIVE", "수량": 1, "매출": 368790, "발매일": "2026-07-13"}, {"날짜": "2026-07-30", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 189500, "발매일": "2026-07-13"}, {"날짜": "2026-07-31", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9634NAZF", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "NAVY", "수량": 1, "매출": 407150, "발매일": "2026-07-13"}, {"날짜": "2026-07-31", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9434NAZF", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "NAVY", "수량": 1, "매출": 413100, "발매일": "2026-07-13"}, {"날짜": "2026-08-01", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 322150, "발매일": "2026-07-13"}, {"날짜": "2026-08-02", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9334OLZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "OLIVE", "수량": 1, "매출": 402760, "발매일": "2026-07-13"}, {"날짜": "2026-08-02", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9434NAZF", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "NAVY", "수량": 1, "매출": 459000, "발매일": "2026-07-13"}, {"날짜": "2026-08-03", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 303990, "발매일": "2026-07-13"}, {"날짜": "2026-08-03", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3", "바코드": "RTR9334OLZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "OLIVE", "수량": 1, "매출": 401630, "발매일": "2026-07-13"}];
+const LAUNCH = [{"바코드": "RTR9334NAZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "NAVY", "발매일": "2026-07-13"}, {"바코드": "RTR9334OLZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "OLIVE", "발매일": "2026-07-13"}, {"바코드": "RTR9334SIZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "SILVER", "발매일": "2026-07-13"}, {"바코드": "RTR9334YMZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "YELLOW MUSTARD", "발매일": "2026-07-13"}, {"바코드": "RTR9434NAZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "NAVY", "발매일": "2026-07-13"}, {"바코드": "RTR9434OLZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "OLIVE", "발매일": "2026-07-13"}, {"바코드": "RTR9434SIZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "SILVER", "발매일": "2026-07-13"}, {"바코드": "RTR9434YMZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "YELLOW MUSTARD", "발매일": "2026-07-13"}, {"바코드": "RTR9534NAZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "NAVY", "발매일": "2026-07-13"}, {"바코드": "RTR9534OLZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "OLIVE", "발매일": "2026-07-13"}, {"바코드": "RTR9534SIZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "발매일": "2026-07-13"}, {"바코드": "RTR9534YMZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "YELLOW MUSTARD", "발매일": "2026-07-13"}, {"바코드": "RTR9634NAZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "NAVY", "발매일": "2026-07-13"}, {"바코드": "RTR9634OLZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "OLIVE", "발매일": "2026-07-13"}, {"바코드": "RTR9634SIZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "SILVER", "발매일": "2026-07-13"}, {"바코드": "RTR9634YMZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "YELLOW MUSTARD", "발매일": "2026-07-13"}, {"바코드": "RTO7725PUZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "큐브백 뉴컬러", "상품명": "CUBE BAG 772", "컬러": "PURPLE", "발매일": "2026-07-27"}, {"바코드": "RTO7725REZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "큐브백 뉴컬러", "상품명": "CUBE BAG 772", "컬러": "RED", "발매일": "2026-07-27"}, {"바코드": "RBP6706BKZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING BACKPACK", "컬러": "BLACK", "발매일": "2026-06-29"}, {"바코드": "RBP6706DOZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING BACKPACK", "컬러": "DARK OLIVE", "발매일": "2026-06-29"}, {"바코드": "RCR6706BKZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING CUBE CROSS", "컬러": "BLACK", "발매일": "2026-06-29"}, {"바코드": "RCR6706DOZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING CUBE CROSS", "컬러": "DARK OLIVE", "발매일": "2026-06-29"}, {"바코드": "RCR6716BKZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "BLACK", "발매일": "2026-06-29"}, {"바코드": "RCR6716DOZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "DARK OLIVE", "발매일": "2026-06-29"}, {"바코드": "RCR6716GYZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "GRAY", "발매일": "2026-06-29"}, {"바코드": "RCR6726BKZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING CYLINDER CROSS", "컬러": "BLACK", "발매일": "2026-06-29"}, {"바코드": "RCR6726DOZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING CYLINDER CROSS", "컬러": "DARK OLIVE", "발매일": "2026-06-29"}, {"바코드": "RCR6726GYZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING CYLINDER CROSS", "컬러": "GRAY", "발매일": "2026-06-29"}, {"바코드": "RSD6706BKZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING HOBO", "컬러": "BLACK", "발매일": "2026-06-29"}, {"바코드": "RSD6706DOZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING HOBO", "컬러": "DARK OLIVE", "발매일": "2026-06-29"}, {"바코드": "RSD6706GYZF", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "상품명": "CLIPPING HOBO", "컬러": "GRAY", "발매일": "2026-06-29"}, {"바코드": "RTR0736BKZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "슈퍼73", "상품명": "X SUPER73 FRAME BAG", "컬러": "BLACK", "발매일": "2026-07-29"}, {"바코드": "RTR0746SIZF", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "슈퍼73", "상품명": "X SUPER73 TOP BOX", "컬러": "SILVER", "발매일": "2026-07-29"}, {"바코드": "RBP0356BKZF", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "코듀라 AIR", "상품명": "CORDURA AIR STRING RUCKSACK MINI", "컬러": "BLACK", "발매일": "2026-08-03"}, {"바코드": "RBP0356GYZF", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "코듀라 AIR", "상품명": "CORDURA AIR STRING RUCKSACK MINI", "컬러": "GRAY", "발매일": "2026-08-03"}, {"바코드": "RBP0356LIZF", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "코듀라 AIR", "상품명": "CORDURA AIR STRING RUCKSACK MINI", "컬러": "LIME", "발매일": "2026-08-03"}, {"바코드": "RBP0366BKZF", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "코듀라 AIR", "상품명": "CORDURA AIR BACKPACK", "컬러": "BLACK", "발매일": "2026-08-03"}, {"바코드": "RBP0366GYZF", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "코듀라 AIR", "상품명": "CORDURA AIR BACKPACK", "컬러": "GRAY", "발매일": "2026-08-03"}, {"바코드": "RBP0366LIZF", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "코듀라 AIR", "상품명": "CORDURA AIR BACKPACK", "컬러": "LIME", "발매일": "2026-08-03"}, {"바코드": "RBP0376BKZF", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "코듀라 AIR", "상품명": "CORDURA AIR ROUND BACKPACK", "컬러": "BLACK", "발매일": "2026-08-03"}, {"바코드": "RBP0376GYZF", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "코듀라 AIR", "상품명": "CORDURA AIR ROUND BACKPACK", "컬러": "GRAY", "발매일": "2026-08-03"}, {"바코드": "RBP0376LIZF", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "코듀라 AIR", "상품명": "CORDURA AIR ROUND BACKPACK", "컬러": "LIME", "발매일": "2026-08-03"}, {"바코드": "RPU9026MIXF", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "365 투명 파우치", "상품명": "365 POUCH TARP S", "컬러": "MIX", "발매일": "2026-08-03"}, {"바코드": "RPU9036MIXF", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "365 투명 파우치", "상품명": "365 POUCH TARP L", "컬러": "MIX", "발매일": "2026-08-03"}];
+const SEED = [{"고유키": "자사몰|20260629-0002709|RSD6706BKZF|2026-06-29|1|88100", "주문번호": "20260629-0002709", "날짜": "2026-06-29", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RSD6706BKZF", "상품명": "CLIPPING HOBO", "컬러": "BLACK", "수량": 1, "매출": 88100, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260630-0001611|RCR6716GYZF|2026-06-30|1|88290", "주문번호": "20260630-0001611", "날짜": "2026-06-30", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6716GYZF", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "GRAY", "수량": 1, "매출": 88290, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260701-0001782|RCR6726BKZF|2026-07-01|1|204300", "주문번호": "20260701-0001782", "날짜": "2026-07-01", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6726BKZF", "상품명": "CLIPPING CYLINDER CROSS", "컬러": "BLACK", "수량": 1, "매출": 204300, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260701-0002262|RSD6706BKZF|2026-07-01|1|78480", "주문번호": "20260701-0002262", "날짜": "2026-07-01", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RSD6706BKZF", "상품명": "CLIPPING HOBO", "컬러": "BLACK", "수량": 1, "매출": 78480, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260703-0000559|RCR6716BKZF|2026-07-03|1|88290", "주문번호": "20260703-0000559", "날짜": "2026-07-03", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6716BKZF", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "BLACK", "수량": 1, "매출": 88290, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260703-0000476|RCR6716GYZF|2026-07-03|1|83385", "주문번호": "20260703-0000476", "날짜": "2026-07-03", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6716GYZF", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "GRAY", "수량": 1, "매출": 83385, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260703-0000423|RSD6706GYZF|2026-07-03|1|83385", "주문번호": "20260703-0000423", "날짜": "2026-07-03", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RSD6706GYZF", "상품명": "CLIPPING HOBO", "컬러": "GRAY", "수량": 1, "매출": 83385, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260704-0001611|RCR6726DOZF|2026-07-04|1|54500", "주문번호": "20260704-0001611", "날짜": "2026-07-04", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6726DOZF", "상품명": "CLIPPING CYLINDER CROSS", "컬러": "DARK OLIVE", "수량": 1, "매출": 54500, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260704-0001710|RSD6706DOZF|2026-07-04|1|160831", "주문번호": "20260704-0001710", "날짜": "2026-07-04", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RSD6706DOZF", "상품명": "CLIPPING HOBO", "컬러": "DARK OLIVE", "수량": 1, "매출": 160831, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260706-0000851|RCR6716DOZF|2026-07-06|1|104000", "주문번호": "20260706-0000851", "날짜": "2026-07-06", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6716DOZF", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "DARK OLIVE", "수량": 1, "매출": 104000, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260706-0001411|RCR6716DOZF|2026-07-06|1|234200", "주문번호": "20260706-0001411", "날짜": "2026-07-06", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6716DOZF", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "DARK OLIVE", "수량": 1, "매출": 234200, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260708-0000062|RCR6706DOZF|2026-07-08|1|129000", "주문번호": "20260708-0000062", "날짜": "2026-07-08", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6706DOZF", "상품명": "CLIPPING CUBE CROSS", "컬러": "DARK OLIVE", "수량": 1, "매출": 129000, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260708-0000367|RCR6716DOZF|2026-07-08|1|109000", "주문번호": "20260708-0000367", "날짜": "2026-07-08", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6716DOZF", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "DARK OLIVE", "수량": 1, "매출": 109000, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260712-0000133|RCR6716DOZF|2026-07-12|1|109000", "주문번호": "20260712-0000133", "날짜": "2026-07-12", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6716DOZF", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "DARK OLIVE", "수량": 1, "매출": 109000, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260712-0000133|RCR6716GYZF|2026-07-12|1|109000", "주문번호": "20260712-0000133", "날짜": "2026-07-12", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6716GYZF", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "GRAY", "수량": 1, "매출": 109000, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260721-0000290|RCR6716GYZF|2026-07-21|1|98100", "주문번호": "20260721-0000290", "날짜": "2026-07-21", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6716GYZF", "상품명": "CLIPPING CUBE CROSS MINI", "컬러": "GRAY", "수량": 1, "매출": 98100, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260722-0000036|RSD6706BKZF|2026-07-22|1|98100", "주문번호": "20260722-0000036", "날짜": "2026-07-22", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RSD6706BKZF", "상품명": "CLIPPING HOBO", "컬러": "BLACK", "수량": 1, "매출": 98100, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260725-0000339|RCR6706DOZF|2026-07-25|1|139000", "주문번호": "20260725-0000339", "날짜": "2026-07-25", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RCR6706DOZF", "상품명": "CLIPPING CUBE CROSS", "컬러": "DARK OLIVE", "수량": 1, "매출": 139000, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260729-0000166|RSD6706BKZF|2026-07-29|1|126000", "주문번호": "20260729-0000166", "날짜": "2026-07-29", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-06", "시리즈": "클리핑", "바코드": "RSD6706BKZF", "상품명": "CLIPPING HOBO", "컬러": "BLACK", "수량": 1, "매출": 126000, "발매일": "2026-06-29"}, {"고유키": "자사몰|20260713-0000263|RTR9634NAZF|2026-07-13|1|400923", "주문번호": "20260713-0000263", "날짜": "2026-07-13", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9634NAZF", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "NAVY", "수량": 1, "매출": 400923, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260714-0000411|RTR9534OLZF|2026-07-14|1|454800", "주문번호": "20260714-0000411", "날짜": "2026-07-14", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9534OLZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "OLIVE", "수량": 1, "매출": 454800, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260714-0000391|RTR9534SIZF|2026-07-14|1|352470", "주문번호": "20260714-0000391", "날짜": "2026-07-14", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 352470, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260714-0000406|RTR9334SIZF|2026-07-14|1|464070", "주문번호": "20260714-0000406", "날짜": "2026-07-14", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9334SIZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "SILVER", "수량": 1, "매출": 464070, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260721-0000507|RTR9634SIZF|2026-07-21|1|445470", "주문번호": "20260721-0000507", "날짜": "2026-07-21", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9634SIZF", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "SILVER", "수량": 1, "매출": 445470, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260721-0000378|RTR9334SIZF|2026-07-21|1|442563", "주문번호": "20260721-0000378", "날짜": "2026-07-21", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9334SIZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "SILVER", "수량": 1, "매출": 442563, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260721-0000392|RTR9434SIZF|2026-07-21|1|426870", "주문번호": "20260721-0000392", "날짜": "2026-07-21", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9434SIZF", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "SILVER", "수량": 1, "매출": 426870, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260722-0000286|RTR9334SIZF|2026-07-22|1|885940", "주문번호": "20260722-0000286", "날짜": "2026-07-22", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9334SIZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "SILVER", "수량": 1, "매출": 885940, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260722-0000286|RTR9434SIZF|2026-07-22|1|885940", "주문번호": "20260722-0000286", "날짜": "2026-07-22", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9434SIZF", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "SILVER", "수량": 1, "매출": 885940, "발매일": "2026-07-13"}, {"고유키": "네이버|2026072772079231|RTR9334SIZF|2026-07-27|1|404190", "주문번호": "2026072772079231", "날짜": "2026-07-27", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9334SIZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "SILVER", "수량": 1, "매출": 404190, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260727-0000418|RTR9534SIZF|2026-07-27|1|379000", "주문번호": "20260727-0000418", "날짜": "2026-07-27", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 379000, "발매일": "2026-07-13"}, {"고유키": "네이버|2026072895388901|RTR9634OLZF|2026-07-28|1|366430", "주문번호": "2026072895388901", "날짜": "2026-07-28", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9634OLZF", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "OLIVE", "수량": 1, "매출": 366430, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260728-0000333|RTR9534NAZF|2026-07-28|1|189500", "주문번호": "20260728-0000333", "날짜": "2026-07-28", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9534NAZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "NAVY", "수량": 1, "매출": 189500, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260728-0000396|RTR9534SIZF|2026-07-28|1|619000", "주문번호": "20260728-0000396", "날짜": "2026-07-28", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 619000, "발매일": "2026-07-13"}, {"고유키": "네이버|2026073080647541|RTR9434OLZF|2026-07-30|1|368790", "주문번호": "2026073080647541", "날짜": "2026-07-30", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9434OLZF", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "OLIVE", "수량": 1, "매출": 368790, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260730-0000128|RTR9534SIZF|2026-07-30|1|189500", "주문번호": "20260730-0000128", "날짜": "2026-07-30", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 189500, "발매일": "2026-07-13"}, {"고유키": "네이버|2026073124742051|RTR9634NAZF|2026-07-31|1|407150", "주문번호": "2026073124742051", "날짜": "2026-07-31", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9634NAZF", "상품명": "FRAME ep.3 CHECK IN L (84L/20\")", "컬러": "NAVY", "수량": 1, "매출": 407150, "발매일": "2026-07-13"}, {"고유키": "네이버|2026073124742041|RTR9434NAZF|2026-07-31|1|413100", "주문번호": "2026073124742041", "날짜": "2026-07-31", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9434NAZF", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "NAVY", "수량": 1, "매출": 413100, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260801-0000263|RTR9534SIZF|2026-08-01|1|322150", "주문번호": "20260801-0000263", "날짜": "2026-08-01", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 322150, "발매일": "2026-07-13"}, {"고유키": "네이버|2026080293347751|RTR9334OLZF|2026-08-02|1|402760", "주문번호": "2026080293347751", "날짜": "2026-08-02", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9334OLZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "OLIVE", "수량": 1, "매출": 402760, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260802-0000407|RTR9434NAZF|2026-08-02|1|459000", "주문번호": "20260802-0000407", "날짜": "2026-08-02", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9434NAZF", "상품명": "FRAME ep.3 CHECK IN M (63L/26\")", "컬러": "NAVY", "수량": 1, "매출": 459000, "발매일": "2026-07-13"}, {"고유키": "네이버|2026080375329651|RTR9534SIZF|2026-08-03|1|303990", "주문번호": "2026080375329651", "날짜": "2026-08-03", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9534SIZF", "상품명": "FRAME ep.3 CABIN (37L/20\")", "컬러": "SILVER", "수량": 1, "매출": 303990, "발매일": "2026-07-13"}, {"고유키": "네이버|2026080379149861|RTR9334OLZF|2026-08-03|1|401630", "주문번호": "2026080379149861", "날짜": "2026-08-03", "채널": "네이버", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "FRAME ep.3 뉴컬러", "바코드": "RTR9334OLZF", "상품명": "FRAME ep.3 CHECK IN L (88L/29\")", "컬러": "OLIVE", "수량": 1, "매출": 401630, "발매일": "2026-07-13"}, {"고유키": "자사몰|20260731-0000267|RTO7725REZF|2026-07-31|1|54870", "주문번호": "20260731-0000267", "날짜": "2026-07-31", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "큐브백 뉴컬러", "바코드": "RTO7725REZF", "상품명": "CUBE BAG 772", "컬러": "RED", "수량": 1, "매출": 54870, "발매일": "2026-07-27"}, {"고유키": "자사몰|20260802-0000372|RTO7725PUZF|2026-08-02|1|49383", "주문번호": "20260802-0000372", "날짜": "2026-08-02", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-07", "시리즈": "큐브백 뉴컬러", "바코드": "RTO7725PUZF", "상품명": "CUBE BAG 772", "컬러": "PURPLE", "수량": 1, "매출": 49383, "발매일": "2026-07-27"}, {"고유키": "자사몰|20260803-0000204|RPU9036MIXF|2026-08-03|1|34400", "주문번호": "20260803-0000204", "날짜": "2026-08-03", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "365 투명 파우치", "바코드": "RPU9036MIXF", "상품명": "365 POUCH TARP L", "컬러": "MIX", "수량": 1, "매출": 34400, "발매일": "2026-08-03"}, {"고유키": "자사몰|20260803-0000204|RPU9026MIXF|2026-08-03|1|34400", "주문번호": "20260803-0000204", "날짜": "2026-08-03", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "365 투명 파우치", "바코드": "RPU9026MIXF", "상품명": "365 POUCH TARP S", "컬러": "MIX", "수량": 1, "매출": 34400, "발매일": "2026-08-03"}, {"고유키": "자사몰|20260803-0000288|RBP0376BKZF|2026-08-03|1|106620", "주문번호": "20260803-0000288", "날짜": "2026-08-03", "채널": "자사몰", "브랜드": "RAWROW", "발매월": "2026-08", "시리즈": "코듀라 AIR", "바코드": "RBP0376BKZF", "상품명": "CORDURA AIR ROUND BACKPACK", "컬러": "BLACK", "수량": 1, "매출": 106620, "발매일": "2026-08-03"}];
 const CH={'네이버':'#111111','자사몰':'#FFA300'};
 const COLOR_SWATCH={'NAVY':'#1f2a44','OLIVE':'#5a5f3a','SILVER':'#b8bcc0','YELLOW MUSTARD':'#d99a00','BLACK':'#111111','YELLOW':'#FFA300','WHITE':'#eeeeee','CHARCOAL':'#3d3d3d','KHAKI':'#7a6a48'};
 const SERIES_PALETTE=['#FFA300','#111111','#5a5f3a','#1f2a44','#b8bcc0','#7a6a48','#d99a00','#8a8a8a'];
@@ -206,7 +266,10 @@ const CODES=new Set(Object.keys(LMAP));
 function normalize(r){return{uid:String(r['고유키']||'').trim(),orderno:String(r['주문번호']||'').trim(),date:String(r['날짜']).trim(),channel:String(r['채널']).trim(),brand:String(r['브랜드']||'').trim(),month:String(r['발매월']||'').trim(),series:String(r['시리즈']||'').trim(),barcode:String(r['바코드']||'').trim(),product:String(r['상품명']||'').trim(),color:String(r['컬러']||'').trim(),qty:+r['수량']||0,rev:+r['매출']||0,launch:String(r['발매일']||'').trim()};}
 let RAW=SEED.map(normalize);
 let cafe24Rows=null, naverRows=null, lastProcessed=null;
-let activeMonth='all',activeSeries='all',activeCh='all',metric='rev';
+let activeBrand='all',activeMonth='all',activeCh='all',metric='rev';
+let rankSort='rev'; // 순위표 정렬 기준 (매출/판매량) — 상단 보기와 독립
+let colorSeries=null; // 컬러별 성과 카드 전용 시리즈 필터 (null=전체)
+let selectedSeries=null;
 let seriesOn={},seriesColor={},charts={};
 const won=n=>new Intl.NumberFormat('ko-KR').format(Math.round(n));
 const wonShort=n=>n>=100000000?(n/100000000).toFixed(1)+'억':n>=10000?Math.round(n/10000)+'만':won(n);
@@ -219,9 +282,11 @@ const ymd=v=>{if(v==null||v==='')return'';const d=new Date(v);if(!isNaN(d))retur
 // ================= 가공 로직 (파이썬 스크립트의 JS 이식) =================
 function processCafe24(rows){
   // 헤더 존재. 취소구분==취소안함만, 자체품목코드=바코드
+  // 주문일시가 #######(엑셀 열너비 문제)면 주문번호 앞 8자리(YYYYMMDD)로 날짜 복구
+  const c24date=(dt,on)=>{const v=ymd(dt);if(v)return v;const s=String(on||'').replace(/[^0-9]/g,'');return s.length>=8?s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8):'';};
   return rows.filter(r=>(r['취소구분']||'취소안함')==='취소안함')
-    .map(r=>({barcode:String(r['자체품목코드']||'').trim(),qty:toNum(r['수량']),rev:toNum(r['총 결제금액']),date:ymd(r['주문일시']),channel:'자사몰',orderno:String(r['주문번호']||'').trim()}))
-    .filter(r=>CODES.has(r.barcode));
+    .map(r=>({barcode:String(r['자체품목코드']||'').trim(),qty:toNum(r['수량']),rev:toNum(r['총 결제금액']),date:c24date(r['주문일시'],r['주문번호']),channel:'자사몰',orderno:String(r['주문번호']||'').trim()}))
+    .filter(r=>CODES.has(r.barcode)&&r.date);
 }
 function processNaver(rows){
   // 헤더가 2번째 행 → aoa로 읽어 index=1을 헤더로
@@ -255,11 +320,11 @@ function runProcessing(){
     if(!integrated.length){msg.className='up-msg err';msg.textContent='발매정보와 일치하는 신제품 주문이 없어요. 발매정보 매핑을 확인해주세요.';return;}
     lastProcessed=integrated;
     RAW=integrated.map(normalize);
-    activeMonth='all';activeSeries='all';activeCh='all';seriesOn={};seriesColor={};assignSeriesColors();
+    activeBrand='all';activeMonth='all';activeCh='all';selectedSeries=null;seriesOn={};seriesColor={};assignSeriesColors();
     document.querySelectorAll('.chip.ch').forEach(x=>x.classList.remove('active'));
     document.querySelector('.chip.ch[data-ch="all"]').classList.add('active');
     document.getElementById('dataStatus').innerHTML='<span class="status-dot status-live"></span>업로드 데이터 반영됨';
-    buildMonthChips();buildSeriesChips();renderAll();
+    buildBrandChips();buildMonthChips();buildSeriesSelect();renderAll();
     const rev=RAW.reduce((s,d)=>s+d.rev,0),qty=RAW.reduce((s,d)=>s+d.qty,0);
     msg.className='up-msg ok';msg.textContent=`완료 · ${RAW.length}행 · 매출 ${won(rev)}원 / ${qty}개`;
   }catch(e){msg.className='up-msg err';msg.textContent='처리 오류: '+e.message;}
@@ -298,6 +363,21 @@ document.getElementById('dlBtn').addEventListener('click',()=>{
   a.href=URL.createObjectURL(blob);a.download='통합_신제품판매.csv';a.click();
 });
 
+// 시리즈 드롭다운 열고 닫기
+const ssPanel=document.getElementById('ssPanel'),ssBtn=document.getElementById('ssBtn');
+ssBtn.addEventListener('click',e=>{e.stopPropagation();const open=ssPanel.style.display!=='none';ssPanel.style.display=open?'none':'block';if(!open){buildSeriesSelect();document.getElementById('ssSearch').focus();}});
+document.addEventListener('click',e=>{if(!document.getElementById('seriesSelect').contains(e.target))ssPanel.style.display='none';});
+document.getElementById('ssSearch').addEventListener('input',buildSeriesSelect);
+document.getElementById('ssAll').addEventListener('click',()=>{selectedSeries=null;buildSeriesSelect();renderAll();});
+document.getElementById('ssNone').addEventListener('click',()=>{selectedSeries=new Set();buildSeriesSelect();renderAll();});
+
+// 컬러 카드 시리즈 드롭다운
+const csPanel=document.getElementById('csPanel'),csBtn=document.getElementById('csBtn');
+csBtn.addEventListener('click',e=>{e.stopPropagation();const open=csPanel.style.display!=='none';csPanel.style.display=open?'none':'block';if(!open){buildColorSeriesSelect();document.getElementById('csSearch').focus();}});
+document.addEventListener('click',e=>{if(!document.getElementById('colorSeriesSelect').contains(e.target))csPanel.style.display='none';});
+document.getElementById('csSearch').addEventListener('input',buildColorSeriesSelect);
+document.getElementById('csAll').addEventListener('click',()=>{colorSeries=null;buildColorSeriesSelect();renderColor(scoped());});
+
 // 업로드 영역 접기/펴기
 const upToggle=document.getElementById('upToggle'),uploaderEl=document.getElementById('uploader');
 upToggle.addEventListener('click',()=>{
@@ -322,17 +402,53 @@ function runMerged(){
     const parsed=dedupNormalized(mergedRows.map(normalize).filter(r=>r.date&&r.barcode));
     if(!parsed.length){msg.className='up-msg err';msg.textContent='읽을 데이터가 없어요. 통합 CSV 형식인지 확인해주세요.';return;}
     lastProcessed=mergedRows;RAW=parsed;
-    activeMonth='all';activeSeries='all';activeCh='all';seriesOn={};seriesColor={};assignSeriesColors();
+    activeBrand='all';activeMonth='all';activeCh='all';selectedSeries=null;seriesOn={};seriesColor={};assignSeriesColors();
     document.querySelectorAll('.chip.ch').forEach(x=>x.classList.remove('active'));
     document.querySelector('.chip.ch[data-ch="all"]').classList.add('active');
     document.getElementById('dataStatus').innerHTML='<span class="status-dot status-live"></span>업로드 데이터 반영됨';
-    buildMonthChips();buildSeriesChips();renderAll();
+    buildBrandChips();buildMonthChips();buildSeriesSelect();renderAll();
     const rev=RAW.reduce((s,d)=>s+d.rev,0),qty=RAW.reduce((s,d)=>s+d.qty,0);
     msg.className='up-msg ok';msg.textContent=`완료 · ${RAW.length}행 · 매출 ${won(rev)}원 / ${qty}개`;
   }catch(e){msg.className='up-msg err';msg.textContent='처리 오류: '+e.message;}
 }
 document.getElementById('fileMerged').addEventListener('change',e=>{if(e.target.files[0])readMerged(e.target.files[0]);});
 document.getElementById('runMergedBtn').addEventListener('click',runMerged);
+
+// ---- 통합 엑셀 1개 (3탭) 읽기 ----
+let bookCafe24=null, bookNaver=null;
+function readBook(file){
+  const reader=new FileReader();
+  reader.onload=e=>{try{
+    const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+    const find=names=>wb.SheetNames.find(s=>names.some(k=>s.replace(/\s/g,'').toLowerCase().includes(k)));
+    const cName=find(['카페24','cafe24']), nName=find(['네이버','naver']);
+    if(!cName||!nName)throw new Error('탭 이름에 카페24 / 네이버가 있어야 해요');
+    bookCafe24=XLSX.utils.sheet_to_json(wb.Sheets[cName],{raw:false,defval:''});
+    bookNaver=XLSX.utils.sheet_to_json(wb.Sheets[nName],{header:1,raw:false,defval:''});
+    const st=document.getElementById('stBook');st.className='up-state ok';st.textContent='✓ '+file.name+' (카페24 '+bookCafe24.length+'행)';
+    document.getElementById('runBookBtn').disabled=false;
+  }catch(err){const st=document.getElementById('stBook');st.className='up-state err';st.textContent='읽기 실패: '+err.message;}};
+  reader.readAsArrayBuffer(file);
+}
+function runBook(){
+  const msg=document.getElementById('upMsg');
+  if(!bookCafe24||!bookNaver){msg.className='up-msg err';msg.textContent='통합 엑셀을 넣어주세요.';return;}
+  try{
+    const c24=processCafe24(bookCafe24), nv=processNaver(bookNaver);
+    const integrated=buildIntegrated(c24,nv);
+    if(!integrated.length){msg.className='up-msg err';msg.textContent='발매정보와 일치하는 신제품 주문이 없어요.';return;}
+    lastProcessed=integrated;RAW=integrated.map(normalize);
+    activeBrand='all';activeMonth='all';activeCh='all';selectedSeries=null;seriesOn={};seriesColor={};assignSeriesColors();
+    document.querySelectorAll('.chip.ch').forEach(x=>x.classList.remove('active'));
+    document.querySelector('.chip.ch[data-ch="all"]').classList.add('active');
+    document.getElementById('dataStatus').innerHTML='<span class="status-dot status-live"></span>업로드 데이터 반영됨';
+    buildBrandChips();buildMonthChips();buildSeriesSelect();renderAll();
+    const rev=RAW.reduce((s,d)=>s+d.rev,0),qty=RAW.reduce((s,d)=>s+d.qty,0);
+    msg.className='up-msg ok';msg.textContent=`완료 · ${RAW.length}행 · 매출 ${won(rev)}원 / ${qty}개`;
+  }catch(e){msg.className='up-msg err';msg.textContent='처리 오류: '+e.message;}
+}
+document.getElementById('fileBook').addEventListener('change',e=>{if(e.target.files[0])readBook(e.target.files[0]);});
+document.getElementById('runBookBtn').addEventListener('click',runBook);
 
 
 // 드래그앤드롭
@@ -345,20 +461,37 @@ uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag');
 
 // ================= 차트 =================
 function assignSeriesColors(){const all=[...new Set(RAW.map(d=>d.series))].filter(Boolean);all.forEach((s,i)=>{if(!seriesColor[s])seriesColor[s]=SERIES_PALETTE[i%SERIES_PALETTE.length];if(seriesOn[s]===undefined)seriesOn[s]=true;});}
-function scoped(){let r=RAW;if(activeMonth!=='all')r=r.filter(d=>d.month===activeMonth);if(activeSeries!=='all')r=r.filter(d=>d.series===activeSeries);if(activeCh!=='all')r=r.filter(d=>d.channel===activeCh);return r;}
-function buildMonthChips(){const months=['all',...[...new Set(RAW.map(d=>d.month))].filter(Boolean).sort()];document.getElementById('monthChips').innerHTML=months.map(m=>`<div class="chip month-chip ${m===activeMonth?'active':''}" data-m="${m}">${m==='all'?'전체':m}</div>`).join('');document.querySelectorAll('.month-chip').forEach(c=>c.addEventListener('click',()=>{activeMonth=c.dataset.m;activeSeries='all';buildMonthChips();buildSeriesChips();renderAll();}));}
-function buildSeriesChips(){let pool=RAW;if(activeMonth!=='all')pool=pool.filter(d=>d.month===activeMonth);const series=['all',...[...new Set(pool.map(d=>d.series))].filter(Boolean)];document.getElementById('seriesChips').innerHTML=series.map(s=>`<div class="chip series ${s===activeSeries?'active':''}" data-s="${s}">${s==='all'?'전체':s}</div>`).join('');document.querySelectorAll('.chip.series').forEach(c=>c.addEventListener('click',()=>{activeSeries=c.dataset.s;buildSeriesChips();renderAll();}));}
+function scoped(){let r=RAW;if(activeBrand!=='all')r=r.filter(d=>d.brand===activeBrand);if(activeMonth!=='all')r=r.filter(d=>d.month===activeMonth);if(selectedSeries)r=r.filter(d=>selectedSeries.has(d.series));if(activeCh!=='all')r=r.filter(d=>d.channel===activeCh);return r;}
+function poolForScope(){let r=RAW;if(activeBrand!=='all')r=r.filter(d=>d.brand===activeBrand);if(activeMonth!=='all')r=r.filter(d=>d.month===activeMonth);return r;}
+function buildBrandChips(){const brands=['all',...[...new Set(RAW.map(d=>d.brand))].filter(Boolean).sort()];document.getElementById('brandChips').innerHTML=brands.map(b=>`<div class="chip brand-chip ${b===activeBrand?'active':''}" data-b="${b}">${b==='all'?'전체':b}</div>`).join('');document.querySelectorAll('.brand-chip').forEach(c=>c.addEventListener('click',()=>{activeBrand=c.dataset.b;activeMonth='all';selectedSeries=null;buildBrandChips();buildMonthChips();buildSeriesSelect();renderAll();}));}
+function buildMonthChips(){let pool=RAW;if(activeBrand!=='all')pool=pool.filter(d=>d.brand===activeBrand);const months=['all',...[...new Set(pool.map(d=>d.month))].filter(Boolean).sort()];document.getElementById('monthChips').innerHTML=months.map(m=>`<div class="chip month-chip ${m===activeMonth?'active':''}" data-m="${m}">${m==='all'?'전체':m}</div>`).join('');document.querySelectorAll('.month-chip').forEach(c=>c.addEventListener('click',()=>{activeMonth=c.dataset.m;selectedSeries=null;buildMonthChips();buildSeriesSelect();renderAll();}));}
+function seriesInScope(){const pool=poolForScope();return [...new Set(pool.map(d=>d.series))].filter(Boolean);}
+function updateSeriesLabel(){const all=seriesInScope();let txt;if(!selectedSeries||selectedSeries.size===0||selectedSeries.size===all.length)txt='전체 시리즈';else if(selectedSeries.size===1)txt=[...selectedSeries][0];else txt=selectedSeries.size+'개 시리즈 선택';document.getElementById('ssLabel').textContent=txt;}
+function buildSeriesSelect(){const all=seriesInScope();if(selectedSeries){selectedSeries=new Set([...selectedSeries].filter(s=>all.includes(s)));if(selectedSeries.size===0)selectedSeries=null;}const q=(document.getElementById('ssSearch').value||'').trim().toLowerCase();const monthOf={};poolForScope().forEach(d=>{if(!monthOf[d.series])monthOf[d.series]=d.month;});const shown=all.filter(s=>!q||s.toLowerCase().includes(q));document.getElementById('ssList').innerHTML=shown.map(s=>{const on=!selectedSeries||selectedSeries.has(s);return `<div class="ss-item ${on?'on':''}" data-s="${s.replace(/"/g,'&quot;')}"><span class="ss-dot" style="background:${seriesColor[s]||'#8a8a8a'}"></span>${s}<span class="ss-mon">${monthOf[s]||''}</span><span class="ss-check">✓</span></div>`;}).join('')||'<div style="padding:10px;color:#8a8a8a;font-size:12px;">검색 결과 없음</div>';document.querySelectorAll('#ssList .ss-item').forEach(it=>it.addEventListener('click',()=>{const s=it.dataset.s;if(!selectedSeries)selectedSeries=new Set(all);if(selectedSeries.has(s))selectedSeries.delete(s);else selectedSeries.add(s);if(selectedSeries.size===all.length)selectedSeries=null;buildSeriesSelect();renderAll();}));updateSeriesLabel();}
+function buildColorSeriesSelect(){
+  const all=[...new Set(scoped().map(d=>d.series))].filter(Boolean);
+  if(colorSeries){colorSeries=new Set([...colorSeries].filter(s=>all.includes(s)));if(colorSeries.size===0)colorSeries=null;}
+  const q=(document.getElementById('csSearch').value||'').trim().toLowerCase();
+  const shown=all.filter(s=>!q||s.toLowerCase().includes(q));
+  const lab=document.getElementById('csLabel');
+  if(!colorSeries||colorSeries.size===0||colorSeries.size===all.length)lab.textContent='전체 시리즈';
+  else if(colorSeries.size===1)lab.textContent=[...colorSeries][0];
+  else lab.textContent=colorSeries.size+'개 선택';
+  document.getElementById('csList').innerHTML=shown.map(s=>{const on=!colorSeries||colorSeries.has(s);return `<div class="ss-item ${on?'on':''}" data-s="${s.replace(/"/g,'&quot;')}"><span class="ss-dot" style="background:${seriesColor[s]||'#8a8a8a'}"></span>${s}<span class="ss-check">✓</span></div>`;}).join('')||'<div style="padding:10px;color:#8a8a8a;font-size:12px;">검색 결과 없음</div>';
+  document.querySelectorAll('#csList .ss-item').forEach(it=>it.addEventListener('click',()=>{const s=it.dataset.s;if(!colorSeries)colorSeries=new Set(all);if(colorSeries.has(s))colorSeries.delete(s);else colorSeries.add(s);if(colorSeries.size===all.length)colorSeries=null;buildColorSeriesSelect();renderColor(scoped());}));
+}
 function buildSeriesToggles(rows){const list=[...new Set(rows.map(d=>d.series))].filter(Boolean);document.getElementById('seriesToggles').innerHTML=list.map(s=>`<span class="stog ${seriesOn[s]!==false?'on':'off'}" data-s="${s}"><span class="dot" style="background:${seriesColor[s]}"></span>${s}</span>`).join('');document.querySelectorAll('.stog').forEach(t=>t.addEventListener('click',()=>{const s=t.dataset.s;seriesOn[s]=seriesOn[s]===false;buildSeriesToggles(rows);renderCumulative(rows);}));}
 
-function renderKPIs(rows){const rev=rows.reduce((s,d)=>s+d.rev,0),qty=rows.reduce((s,d)=>s+d.qty,0);const cAgg={};rows.forEach(d=>cAgg[d.color]=(cAgg[d.color]||0)+val(d));const best=Object.entries(cAgg).sort((a,b)=>b[1]-a[1])[0];const maxD=Math.max(0,...rows.map(ddayOf));const nSeries=new Set(rows.map(d=>d.series)).size;document.getElementById('kpis').innerHTML=`<div class="kpi accent"><div class="k-label">누적 매출</div><div class="k-value">${wonShort(rev)}<span class="unit">원</span></div><div class="k-sub">판매 ${won(qty)}개 · 시리즈 ${nSeries}개</div></div><div class="kpi"><div class="k-label">객단가</div><div class="k-value">${wonShort(qty?rev/qty:0)}<span class="unit">원</span></div><div class="k-sub">매출 ÷ 판매량</div></div><div class="kpi"><div class="k-label">최다 판매 컬러</div><div class="k-value" style="font-size:20px;">${best?best[0]:'—'}</div><div class="k-sub">${best?fmtMetric(best[1]):''}</div></div><div class="kpi"><div class="k-label">발매 경과</div><div class="k-value">D+${maxD}</div><div class="k-sub">${Math.floor(maxD/7)}주차 진입</div></div>`;}
+function renderKPIs(rows){const rev=rows.reduce((s,d)=>s+d.rev,0),qty=rows.reduce((s,d)=>s+d.qty,0);const cAgg={};rows.forEach(d=>{const k=d.color+'||'+d.series;cAgg[k]=(cAgg[k]||0)+val(d);});const bestEntry=Object.entries(cAgg).sort((a,b)=>b[1]-a[1])[0];let bestColor='—',bestSeries='',bestVal=0;if(bestEntry){const parts=bestEntry[0].split('||');bestColor=parts[0];bestSeries=parts[1]||'';bestVal=bestEntry[1];}const maxD=Math.max(0,...rows.map(ddayOf));const nSeries=new Set(rows.map(d=>d.series)).size;document.getElementById('kpis').innerHTML=`<div class="kpi accent"><div class="k-label">누적 매출</div><div class="k-value">${wonShort(rev)}<span class="unit">원</span></div><div class="k-sub">판매 ${won(qty)}개 · 시리즈 ${nSeries}개</div></div><div class="kpi"><div class="k-label">객단가</div><div class="k-value">${wonShort(qty?rev/qty:0)}<span class="unit">원</span></div><div class="k-sub">매출 ÷ 판매량</div></div><div class="kpi"><div class="k-label">최다 판매 컬러</div><div class="k-value" style="font-size:20px;">${bestColor}</div><div class="k-sub">${bestSeries?bestSeries+' · ':''}${bestEntry?fmtMetric(bestVal):''}</div></div><div class="kpi"><div class="k-label">발매 경과</div><div class="k-value">D+${maxD}</div><div class="k-sub">${Math.floor(maxD/7)}주차 진입</div></div>`;}
 function renderCumulative(rows){charts.cum&&charts.cum.destroy();const seriesList=[...new Set(rows.map(d=>d.series))].filter(Boolean).filter(s=>seriesOn[s]!==false);const maxD=Math.max(0,...rows.map(ddayOf));const labels=[];for(let i=0;i<=maxD;i++)labels.push('D+'+i);const datasets=seriesList.map(s=>{const clr=seriesColor[s]||'#8a8a8a';const daily=labels.map((_,i)=>rows.filter(d=>d.series===s&&ddayOf(d)===i).reduce((a,d)=>a+d.qty,0));let run=0;const cum=daily.map(v=>run+=v);return{label:s,data:cum,borderColor:clr,backgroundColor:clr,pointRadius:2,pointHoverRadius:4,borderWidth:2.5,tension:.25,fill:false};});charts.cum=new Chart(document.getElementById('cumChart'),{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>'발매 후 '+items[0].label,label:c=>c.dataset.label+': 누적 '+won(c.parsed.y)+'개'}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}},title:{display:true,text:'발매 후 경과일',font:{size:11},color:'#8a8a8a'}},y:{beginAtZero:true,grid:{color:'#f0f0f0'},ticks:{font:{size:11},precision:0,callback:v=>won(v)+'개'}}}}});}
-function renderColor(rows){charts.color&&charts.color.destroy();const agg={};rows.forEach(d=>agg[d.color]=(agg[d.color]||0)+val(d));const arr=Object.entries(agg).sort((a,b)=>b[1]-a[1]);charts.color=new Chart(document.getElementById('colorChart'),{type:'bar',data:{labels:arr.map(a=>a[0]),datasets:[{data:arr.map(a=>a[1]),backgroundColor:arr.map(a=>COLOR_SWATCH[a[0]]||'#8a8a8a'),borderRadius:2,barPercentage:.7}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtMetric(c.parsed.x)}}},scales:{x:{grid:{color:'#f0f0f0'},ticks:{font:{size:11},callback:v=>metric==='rev'?wonShort(v):won(v)}},y:{grid:{display:false},ticks:{font:{size:11,weight:'600'}}}}}});}
+function renderColor(rows){charts.color&&charts.color.destroy();let cr=rows;if(colorSeries)cr=rows.filter(d=>colorSeries.has(d.series));const agg={};cr.forEach(d=>agg[d.color]=(agg[d.color]||0)+val(d));const arr=Object.entries(agg).sort((a,b)=>b[1]-a[1]);charts.color=new Chart(document.getElementById('colorChart'),{type:'bar',data:{labels:arr.map(a=>a[0]),datasets:[{data:arr.map(a=>a[1]),backgroundColor:arr.map(a=>COLOR_SWATCH[a[0]]||'#8a8a8a'),borderRadius:2,barPercentage:.7}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtMetric(c.parsed.x)}}},scales:{x:{grid:{color:'#f0f0f0'},ticks:{font:{size:11},callback:v=>metric==='rev'?wonShort(v):won(v)}},y:{grid:{display:false},ticks:{font:{size:11,weight:'600'}}}}}});}
 function renderChannel(rows){charts.channel&&charts.channel.destroy();const agg={};rows.forEach(d=>agg[d.channel]=(agg[d.channel]||0)+val(d));const labels=Object.keys(agg);charts.channel=new Chart(document.getElementById('channelChart'),{type:'doughnut',data:{labels,datasets:[{data:labels.map(k=>agg[k]),backgroundColor:labels.map(k=>CH[k]||'#8a8a8a'),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,font:{size:12},padding:14}},tooltip:{callbacks:{label:c=>{const t=c.dataset.data.reduce((a,b)=>a+b,0);return c.label+': '+fmtMetric(c.parsed)+' ('+(c.parsed/t*100).toFixed(1)+'%)';}}}}}});}
-function renderRank(rows){const agg={};rows.forEach(d=>{const k=d.product+'||'+d.color;if(!agg[k])agg[k]={product:d.product,color:d.color,qty:0,rev:0};agg[k].qty+=d.qty;agg[k].rev+=d.rev;});const arr=Object.values(agg).sort((a,b)=>val(b)-val(a));const max=arr.length?val(arr[0]):1;document.querySelector('#rankTable tbody').innerHTML=arr.map((r,i)=>`<tr><td><span class="rank-num ${i===0?'top':''}">${String(i+1).padStart(2,'0')}</span>${r.product}</td><td><span class="swatch" style="background:${COLOR_SWATCH[r.color]||'#8a8a8a'}"></span>${r.color}</td><td>${won(r.qty)}개</td><td>${won(r.rev)}원</td><td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${(val(r)/max*100).toFixed(0)}%"></div></div></td></tr>`).join('');}
-function renderAll(){const rows=scoped();renderKPIs(rows);buildSeriesToggles(rows);renderCumulative(rows);renderColor(rows);renderChannel(rows);renderRank(rows);const dates=[...new Set(RAW.map(d=>d.date))].sort();document.getElementById('lastUpdate').textContent=dates.length?dates[0]+' ~ '+dates[dates.length-1]:'—';document.getElementById('rowCount').textContent=RAW.length+'개 행';const seriesInScope=[...new Set(rows.map(d=>d.series))].filter(Boolean);const months=[...new Set(rows.map(d=>d.month))].filter(Boolean).sort();document.getElementById('prodLine').textContent=(months.join(', ')||'')+' · '+seriesInScope.join(' / ');}
+function renderRank(rows){const agg={};rows.forEach(d=>{const k=d.product+'||'+d.color;if(!agg[k])agg[k]={product:d.product,color:d.color,qty:0,rev:0};agg[k].qty+=d.qty;agg[k].rev+=d.rev;});const rv=r=>rankSort==='rev'?r.rev:r.qty;const arr=Object.values(agg).sort((a,b)=>rv(b)-rv(a));const max=arr.length?rv(arr[0]):1;document.querySelector('#rankTable tbody').innerHTML=arr.map((r,i)=>`<tr><td><span class="rank-num ${i===0?'top':''}">${String(i+1).padStart(2,'0')}</span>${r.product}</td><td><span class="swatch" style="background:${COLOR_SWATCH[r.color]||'#8a8a8a'}"></span>${r.color}</td><td>${won(r.qty)}개</td><td>${won(r.rev)}원</td><td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${(rv(r)/max*100).toFixed(0)}%"></div></div></td></tr>`).join('');}
+function renderAll(){const rows=scoped();renderKPIs(rows);buildSeriesToggles(rows);renderCumulative(rows);buildColorSeriesSelect();renderColor(rows);renderChannel(rows);renderRank(rows);const dates=[...new Set(RAW.map(d=>d.date))].sort();document.getElementById('lastUpdate').textContent=dates.length?dates[0]+' ~ '+dates[dates.length-1]:'—';document.getElementById('rowCount').textContent=RAW.length+'개 행';}
 
 document.querySelectorAll('.chip.ch').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.chip.ch').forEach(x=>x.classList.remove('active'));c.classList.add('active');activeCh=c.dataset.ch;renderAll();}));
 document.querySelectorAll('.chip.metric').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.chip.metric').forEach(x=>x.classList.remove('active'));c.classList.add('active');metric=c.dataset.m;renderAll();}));
+document.querySelectorAll('.chip.rk').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.chip.rk').forEach(x=>x.classList.remove('active'));c.classList.add('active');rankSort=c.dataset.rk;renderRank(scoped());}));
 
 
 // ===== 구글시트 자동 읽기 (통합 탭 게시 CSV) =====
@@ -374,16 +507,16 @@ function loadFromSheet(url){
     complete:res=>{try{
       const parsed=dedupNormalized(res.data.map(normalize).filter(r=>r.date&&r.barcode));
       if(!parsed.length)return;
-      RAW=parsed;activeMonth='all';activeSeries='all';activeCh='all';seriesOn={};seriesColor={};assignSeriesColors();
+      RAW=parsed;activeBrand='all';activeMonth='all';activeCh='all';selectedSeries=null;seriesOn={};seriesColor={};assignSeriesColors();
       document.querySelectorAll('.chip.ch').forEach(x=>x.classList.remove('active'));
       const allc=document.querySelector('.chip.ch[data-ch="all"]');if(allc)allc.classList.add('active');
       document.getElementById('dataStatus').innerHTML='<span class="status-dot status-live"></span>구글시트 자동 연동';
-      buildMonthChips();buildSeriesChips();renderAll();
+      buildBrandChips();buildMonthChips();buildSeriesSelect();renderAll();
     }catch(e){console.error(e);}},
     error:err=>console.error('시트 읽기 실패',err)});
 }
 
-assignSeriesColors();buildMonthChips();buildSeriesChips();renderAll();
+assignSeriesColors();buildBrandChips();buildMonthChips();buildSeriesSelect();renderAll();
 if(SHEET_CSV_URL)loadFromSheet(SHEET_CSV_URL);
 </script>
 </body>
