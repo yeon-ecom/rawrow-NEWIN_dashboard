@@ -165,7 +165,19 @@
   <div class="grid">
     <div class="card full">
       <h2>발매 후 누적 판매 <span style="font-weight:600;color:var(--gray-500);font-size:12px;">시리즈별 · D+N</span></h2>
-      <div class="series-toggles" id="seriesToggles"></div>
+      <div style="margin:2px 0 14px;">
+        <div class="series-select" id="cumSeries">
+          <button class="ss-btn" id="cumBtn" type="button"><span id="cumLabel">전체 시리즈</span><span class="ss-caret">▾</span></button>
+          <div class="ss-panel" id="cumPanel" style="display:none;">
+            <div class="ss-tools">
+              <input type="text" id="cumSearch" placeholder="시리즈 검색…">
+              <button class="ss-mini" id="cumAll">전체</button>
+              <button class="ss-mini" id="cumNone">해제</button>
+            </div>
+            <div class="ss-list" id="cumList"></div>
+          </div>
+        </div>
+      </div>
       <div class="chart-box tall"><canvas id="cumChart"></canvas></div>
     </div>
     <div class="card">
@@ -174,7 +186,7 @@
         <div class="series-select" id="colorSeriesSelect">
           <button class="ss-btn" id="csBtn" type="button" style="padding:5px 12px;font-size:11.5px;"><span id="csLabel">전체 시리즈</span><span class="ss-caret">▾</span></button>
           <div class="ss-panel" id="csPanel" style="display:none;right:0;left:auto;">
-            <div class="ss-tools"><input type="text" id="csSearch" placeholder="시리즈 검색…"><button class="ss-mini" id="csAll">전체</button></div>
+            <div class="ss-tools"><input type="text" id="csSearch" placeholder="시리즈 검색…"><button class="ss-mini" id="csAll">전체</button><button class="ss-mini" id="csNone">해제</button></div>
             <div class="ss-list" id="csList"></div>
           </div>
         </div>
@@ -238,6 +250,7 @@ let rankSort='rev'; // 순위표 정렬 기준 (매출/판매량) — 상단 보
 let refundSort='cnt'; // 환불 순위 정렬 (건수/금액/환불률)
 let colorSeries=null; // 컬러별 성과 카드 전용 시리즈 필터 (null=전체)
 let selectedSeries=null;
+let cumRows=[];
 let seriesOn={},seriesColor={},charts={};
 const won=n=>new Intl.NumberFormat('ko-KR').format(Math.round(n));
 const wonShort=n=>n>=100000000?(n/100000000).toFixed(1)+'억':n>=10000?Math.round(n/10000)+'만':won(n);
@@ -262,6 +275,14 @@ csBtn.addEventListener('click',e=>{e.stopPropagation();const open=csPanel.style.
 document.addEventListener('click',e=>{if(!document.getElementById('colorSeriesSelect').contains(e.target))csPanel.style.display='none';});
 document.getElementById('csSearch').addEventListener('input',buildColorSeriesSelect);
 document.getElementById('csAll').addEventListener('click',()=>{colorSeries=null;buildColorSeriesSelect();renderColor(scoped());});
+document.getElementById('csNone').addEventListener('click',()=>{colorSeries=new Set();buildColorSeriesSelect();renderColor(scoped());});
+
+const cumPanel=document.getElementById('cumPanel'),cumBtn=document.getElementById('cumBtn');
+cumBtn.addEventListener('click',e=>{e.stopPropagation();const open=cumPanel.style.display!=='none';cumPanel.style.display=open?'none':'block';if(!open){buildCumSelect();document.getElementById('cumSearch').focus();}});
+document.addEventListener('click',e=>{if(!document.getElementById('cumSeries').contains(e.target))cumPanel.style.display='none';});
+document.getElementById('cumSearch').addEventListener('input',buildCumSelect);
+document.getElementById('cumAll').addEventListener('click',()=>{[...new Set(cumRows.map(d=>d.series))].filter(Boolean).forEach(s=>seriesOn[s]=true);buildCumSelect();renderCumulative(cumRows);});
+document.getElementById('cumNone').addEventListener('click',()=>{[...new Set(cumRows.map(d=>d.series))].filter(Boolean).forEach(s=>seriesOn[s]=false);buildCumSelect();renderCumulative(cumRows);});
 
 
 // ================= 차트 =================
@@ -271,29 +292,40 @@ function poolForScope(){let r=RAW;if(activeBrand!=='all')r=r.filter(d=>d.brand==
 function buildBrandChips(){const brands=['all',...[...new Set(RAW.map(d=>d.brand))].filter(Boolean).sort()];document.getElementById('brandChips').innerHTML=brands.map(b=>`<div class="chip brand-chip ${b===activeBrand?'active':''}" data-b="${b}">${b==='all'?'전체':b}</div>`).join('');document.querySelectorAll('.brand-chip').forEach(c=>c.addEventListener('click',()=>{activeBrand=c.dataset.b;activeMonth='all';selectedSeries=null;buildBrandChips();buildMonthChips();buildSeriesSelect();renderAll();}));}
 function buildMonthChips(){let pool=RAW;if(activeBrand!=='all')pool=pool.filter(d=>d.brand===activeBrand);const months=['all',...[...new Set(pool.map(d=>d.month))].filter(Boolean).sort()];document.getElementById('monthChips').innerHTML=months.map(m=>`<div class="chip month-chip ${m===activeMonth?'active':''}" data-m="${m}">${m==='all'?'전체':m}</div>`).join('');document.querySelectorAll('.month-chip').forEach(c=>c.addEventListener('click',()=>{activeMonth=c.dataset.m;selectedSeries=null;buildMonthChips();buildSeriesSelect();renderAll();}));}
 function seriesInScope(){const pool=poolForScope();return [...new Set(pool.map(d=>d.series))].filter(Boolean);}
-function updateSeriesLabel(){const all=seriesInScope();let txt;if(!selectedSeries||selectedSeries.size===0||selectedSeries.size===all.length)txt='전체 시리즈';else if(selectedSeries.size===1)txt=[...selectedSeries][0];else txt=selectedSeries.size+'개 시리즈 선택';document.getElementById('ssLabel').textContent=txt;}
-function buildSeriesSelect(){const all=seriesInScope();if(selectedSeries){selectedSeries=new Set([...selectedSeries].filter(s=>all.includes(s)));if(selectedSeries.size===0)selectedSeries=null;}const q=(document.getElementById('ssSearch').value||'').trim().toLowerCase();const monthOf={};poolForScope().forEach(d=>{if(!monthOf[d.series])monthOf[d.series]=d.month;});const shown=all.filter(s=>!q||s.toLowerCase().includes(q));document.getElementById('ssList').innerHTML=shown.map(s=>{const on=!selectedSeries||selectedSeries.has(s);return `<div class="ss-item ${on?'on':''}" data-s="${s.replace(/"/g,'&quot;')}"><span class="ss-dot" style="background:${seriesColor[s]||'#8a8a8a'}"></span>${s}<span class="ss-mon">${monthOf[s]||''}</span><span class="ss-check">✓</span></div>`;}).join('')||'<div style="padding:10px;color:#8a8a8a;font-size:12px;">검색 결과 없음</div>';document.querySelectorAll('#ssList .ss-item').forEach(it=>it.addEventListener('click',()=>{const s=it.dataset.s;if(!selectedSeries)selectedSeries=new Set(all);if(selectedSeries.has(s))selectedSeries.delete(s);else selectedSeries.add(s);if(selectedSeries.size===all.length)selectedSeries=null;it.classList.toggle('on',!selectedSeries||selectedSeries.has(s));updateSeriesLabel();renderAll();}));updateSeriesLabel();}
-function updateColorLabel(){const all=[...new Set(scoped().filter(d=>d.status==='판매').map(d=>d.series))].filter(Boolean);const lab=document.getElementById('csLabel');if(!colorSeries||colorSeries.size===0||colorSeries.size===all.length)lab.textContent='전체 시리즈';else if(colorSeries.size===1)lab.textContent=[...colorSeries][0];else lab.textContent=colorSeries.size+'개 선택';}
+function updateSeriesLabel(){const all=seriesInScope();let txt;if(!selectedSeries||selectedSeries.size===all.length)txt='전체 시리즈';else if(selectedSeries.size===0)txt='선택 없음';else if(selectedSeries.size===1)txt=[...selectedSeries][0];else txt=selectedSeries.size+'개 시리즈 선택';document.getElementById('ssLabel').textContent=txt;}
+function buildSeriesSelect(){const all=seriesInScope();if(selectedSeries===null){selectedSeries=new Set(all);}else{selectedSeries=new Set([...selectedSeries].filter(s=>all.includes(s)));}const q=(document.getElementById('ssSearch').value||'').trim().toLowerCase();const monthOf={};poolForScope().forEach(d=>{if(!monthOf[d.series])monthOf[d.series]=d.month;});const shown=all.filter(s=>!q||s.toLowerCase().includes(q));document.getElementById('ssList').innerHTML=shown.map(s=>{const on=!selectedSeries||selectedSeries.has(s);return `<div class="ss-item ${on?'on':''}" data-s="${s.replace(/"/g,'&quot;')}"><span class="ss-dot" style="background:${seriesColor[s]||'#8a8a8a'}"></span>${s}<span class="ss-mon">${monthOf[s]||''}</span><span class="ss-check">✓</span></div>`;}).join('')||'<div style="padding:10px;color:#8a8a8a;font-size:12px;">검색 결과 없음</div>';document.querySelectorAll('#ssList .ss-item').forEach(it=>it.addEventListener('click',()=>{const s=it.dataset.s;if(!selectedSeries)selectedSeries=new Set(all);if(selectedSeries.has(s))selectedSeries.delete(s);else selectedSeries.add(s);it.classList.toggle('on',selectedSeries.has(s));updateSeriesLabel();renderAll();}));updateSeriesLabel();}
+function updateColorLabel(){const all=[...new Set(scoped().filter(d=>d.status==='판매').map(d=>d.series))].filter(Boolean);const lab=document.getElementById('csLabel');if(!colorSeries||colorSeries.size===all.length)lab.textContent='전체 시리즈';else if(colorSeries.size===0)lab.textContent='선택 없음';else if(colorSeries.size===1)lab.textContent=[...colorSeries][0];else lab.textContent=colorSeries.size+'개 선택';}
 function buildColorSeriesSelect(){
   const all=[...new Set(scoped().map(d=>d.series))].filter(Boolean);
-  if(colorSeries){colorSeries=new Set([...colorSeries].filter(s=>all.includes(s)));if(colorSeries.size===0)colorSeries=null;}
+  if(colorSeries===null){colorSeries=new Set(all);}else{colorSeries=new Set([...colorSeries].filter(s=>all.includes(s)));}
   const q=(document.getElementById('csSearch').value||'').trim().toLowerCase();
   const shown=all.filter(s=>!q||s.toLowerCase().includes(q));
   const lab=document.getElementById('csLabel');
-  if(!colorSeries||colorSeries.size===0||colorSeries.size===all.length)lab.textContent='전체 시리즈';
+  if(!colorSeries||colorSeries.size===all.length)lab.textContent='전체 시리즈';
+  else if(colorSeries.size===0)lab.textContent='선택 없음';
   else if(colorSeries.size===1)lab.textContent=[...colorSeries][0];
   else lab.textContent=colorSeries.size+'개 선택';
   document.getElementById('csList').innerHTML=shown.map(s=>{const on=!colorSeries||colorSeries.has(s);return `<div class="ss-item ${on?'on':''}" data-s="${s.replace(/"/g,'&quot;')}"><span class="ss-dot" style="background:${seriesColor[s]||'#8a8a8a'}"></span>${s}<span class="ss-check">✓</span></div>`;}).join('')||'<div style="padding:10px;color:#8a8a8a;font-size:12px;">검색 결과 없음</div>';
-  document.querySelectorAll('#csList .ss-item').forEach(it=>it.addEventListener('click',()=>{const s=it.dataset.s;if(!colorSeries)colorSeries=new Set(all);if(colorSeries.has(s))colorSeries.delete(s);else colorSeries.add(s);if(colorSeries.size===all.length)colorSeries=null;it.classList.toggle('on',!colorSeries||colorSeries.has(s));updateColorLabel();renderColor(scoped().filter(d=>d.status==='판매'));}));
+  document.querySelectorAll('#csList .ss-item').forEach(it=>it.addEventListener('click',()=>{const s=it.dataset.s;if(!colorSeries)colorSeries=new Set(all);if(colorSeries.has(s))colorSeries.delete(s);else colorSeries.add(s);it.classList.toggle('on',colorSeries.has(s));updateColorLabel();renderColor(scoped().filter(d=>d.status==='판매'));}));
 }
 function buildSeriesToggles(rows){const list=[...new Set(rows.map(d=>d.series))].filter(Boolean);document.getElementById('seriesToggles').innerHTML=list.map(s=>`<span class="stog ${seriesOn[s]!==false?'on':'off'}" data-s="${s}"><span class="dot" style="background:${seriesColor[s]}"></span>${s}</span>`).join('');document.querySelectorAll('.stog').forEach(t=>t.addEventListener('click',()=>{const s=t.dataset.s;seriesOn[s]=seriesOn[s]===false;buildSeriesToggles(rows);renderCumulative(rows);}));}
 
+function buildCumSelect(){
+  const list=[...new Set(cumRows.map(d=>d.series))].filter(Boolean);
+  list.forEach(s=>{if(seriesOn[s]===undefined)seriesOn[s]=true;});
+  const q=(document.getElementById('cumSearch').value||'').trim().toLowerCase();
+  const shown=list.filter(s=>!q||s.toLowerCase().includes(q));
+  const relabel=()=>{const oc=list.filter(x=>seriesOn[x]!==false).length;document.getElementById('cumLabel').textContent=list.length===0?'시리즈 없음':oc===0?'선택 없음':oc===list.length?'전체 시리즈':oc+'개 시리즈';};
+  relabel();
+  document.getElementById('cumList').innerHTML=shown.map(s=>{const on=seriesOn[s]!==false;return `<div class="ss-item ${on?'on':''}" data-s="${s.replace(/"/g,'&quot;')}"><span class="ss-dot" style="background:${seriesColor[s]||'#8a8a8a'}"></span>${s}<span class="ss-check">✓</span></div>`;}).join('')||'<div style="padding:10px;color:#8a8a8a;font-size:12px;">시리즈 없음</div>';
+  document.querySelectorAll('#cumList .ss-item').forEach(it=>it.addEventListener('click',()=>{const s=it.dataset.s;seriesOn[s]=seriesOn[s]===false;it.classList.toggle('on',seriesOn[s]!==false);relabel();renderCumulative(cumRows);}));
+}
 function renderKPIs(rows){const rev=rows.reduce((s,d)=>s+d.rev,0),qty=rows.reduce((s,d)=>s+d.qty,0);const cAgg={};rows.forEach(d=>{const k=d.color+'||'+d.series;cAgg[k]=(cAgg[k]||0)+val(d);});const bestEntry=Object.entries(cAgg).sort((a,b)=>b[1]-a[1])[0];let bestColor='—',bestSeries='',bestVal=0;if(bestEntry){const parts=bestEntry[0].split('||');bestColor=parts[0];bestSeries=parts[1]||'';bestVal=bestEntry[1];}const maxD=Math.max(0,...rows.map(ddayOf));const nSeries=new Set(rows.map(d=>d.series)).size;document.getElementById('kpis').innerHTML=`<div class="kpi accent"><div class="k-label">누적 매출</div><div class="k-value">${wonShort(rev)}<span class="unit">원</span></div><div class="k-sub">판매 ${won(qty)}개 · 시리즈 ${nSeries}개</div></div><div class="kpi"><div class="k-label">객단가</div><div class="k-value">${wonShort(qty?rev/qty:0)}<span class="unit">원</span></div><div class="k-sub">매출 ÷ 판매량</div></div><div class="kpi"><div class="k-label">최다 판매 컬러</div><div class="k-value" style="font-size:20px;">${bestColor}</div><div class="k-sub">${bestSeries?bestSeries+' · ':''}${bestEntry?fmtMetric(bestVal):''}</div></div><div class="kpi"><div class="k-label">발매 경과</div><div class="k-value">D+${maxD}</div><div class="k-sub">${Math.floor(maxD/7)}주차 진입</div></div>`;}
 function renderCumulative(rows){charts.cum&&charts.cum.destroy();const seriesList=[...new Set(rows.map(d=>d.series))].filter(Boolean).filter(s=>seriesOn[s]!==false);const maxD=Math.max(0,...rows.map(ddayOf));const labels=[];for(let i=0;i<=maxD;i++)labels.push('D+'+i);const datasets=seriesList.map(s=>{const clr=seriesColor[s]||'#8a8a8a';const daily=labels.map((_,i)=>rows.filter(d=>d.series===s&&ddayOf(d)===i).reduce((a,d)=>a+d.qty,0));let run=0;const cum=daily.map(v=>run+=v);return{label:s,data:cum,borderColor:clr,backgroundColor:clr,pointRadius:2,pointHoverRadius:4,borderWidth:2.5,tension:.25,fill:false};});charts.cum=new Chart(document.getElementById('cumChart'),{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>'발매 후 '+items[0].label,label:c=>c.dataset.label+': 누적 '+won(c.parsed.y)+'개'}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}},title:{display:true,text:'발매 후 경과일',font:{size:11},color:'#8a8a8a'}},y:{beginAtZero:true,grid:{color:'#f0f0f0'},ticks:{font:{size:11},precision:0,callback:v=>won(v)+'개'}}}}});}
 function renderColor(rows){charts.color&&charts.color.destroy();let cr=rows;if(colorSeries)cr=rows.filter(d=>colorSeries.has(d.series));const agg={};cr.forEach(d=>agg[d.color]=(agg[d.color]||0)+val(d));const arr=Object.entries(agg).sort((a,b)=>b[1]-a[1]);charts.color=new Chart(document.getElementById('colorChart'),{type:'bar',data:{labels:arr.map(a=>a[0]),datasets:[{data:arr.map(a=>a[1]),backgroundColor:arr.map(a=>COLOR_SWATCH[a[0]]||'#8a8a8a'),borderRadius:2,barPercentage:.7}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtMetric(c.parsed.x)}}},scales:{x:{grid:{color:'#f0f0f0'},ticks:{font:{size:11},callback:v=>metric==='rev'?wonShort(v):won(v)}},y:{grid:{display:false},ticks:{font:{size:11,weight:'600'}}}}}});}
 function renderChannel(rows){charts.channel&&charts.channel.destroy();const agg={};rows.forEach(d=>agg[d.channel]=(agg[d.channel]||0)+val(d));const labels=Object.keys(agg);charts.channel=new Chart(document.getElementById('channelChart'),{type:'doughnut',data:{labels,datasets:[{data:labels.map(k=>agg[k]),backgroundColor:labels.map(k=>CH[k]||'#8a8a8a'),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,font:{size:12},padding:14}},tooltip:{callbacks:{label:c=>{const t=c.dataset.data.reduce((a,b)=>a+b,0);return c.label+': '+fmtMetric(c.parsed)+' ('+(c.parsed/t*100).toFixed(1)+'%)';}}}}}});}
 function renderRank(rows){const agg={};rows.forEach(d=>{const k=d.product+'||'+d.color;if(!agg[k])agg[k]={product:d.product,color:d.color,qty:0,rev:0};agg[k].qty+=d.qty;agg[k].rev+=d.rev;});const rv=r=>rankSort==='rev'?r.rev:r.qty;const arr=Object.values(agg).sort((a,b)=>rv(b)-rv(a));const max=arr.length?rv(arr[0]):1;document.querySelector('#rankTable tbody').innerHTML=arr.map((r,i)=>`<tr><td><span class="rank-num ${i===0?'top':''}">${String(i+1).padStart(2,'0')}</span>${r.product}</td><td><span class="swatch" style="background:${COLOR_SWATCH[r.color]||'#8a8a8a'}"></span>${r.color}</td><td>${won(r.qty)}개</td><td>${won(r.rev)}원</td><td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${(rv(r)/max*100).toFixed(0)}%"></div></div></td></tr>`).join('');}
-function renderAll(){const all=scoped();const rows=all.filter(d=>d.status==='판매');const refunds=all.filter(d=>d.status==='환불');renderKPIs(rows);buildSeriesToggles(rows);renderCumulative(rows);buildColorSeriesSelect();renderColor(rows);renderChannel(rows);renderRank(rows);renderRefundRank(refunds,rows);const dates=[...new Set(RAW.map(d=>d.date))].sort();document.getElementById('lastUpdate').textContent=dates.length?dates[0]+' ~ '+dates[dates.length-1]:'—';document.getElementById('rowCount').textContent=RAW.length+'개 행';}
+function renderAll(){const all=scoped();const rows=all.filter(d=>d.status==='판매');const refunds=all.filter(d=>d.status==='환불');renderKPIs(rows);cumRows=rows;buildCumSelect();renderCumulative(rows);buildColorSeriesSelect();renderColor(rows);renderChannel(rows);renderRank(rows);renderRefundRank(refunds,rows);const dates=[...new Set(RAW.map(d=>d.date))].sort();document.getElementById('lastUpdate').textContent=dates.length?dates[0]+' ~ '+dates[dates.length-1]:'—';document.getElementById('rowCount').textContent=RAW.length+'개 행';}
 // 환불 순위 (건수/금액/환불률). saleRows로 환불률 분모 계산
 function renderRefundRank(refunds,saleRows){
   // 상품(7자리) 단위 집계. 환불률 = 환불건수 / (환불건수 + 판매건수)
