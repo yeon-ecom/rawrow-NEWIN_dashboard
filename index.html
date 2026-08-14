@@ -211,15 +211,14 @@
 
     <div class="card full">
       <div class="card-head">
-        <div><h2>상품별 환불 순위</h2></div>
+        <div><h2>상품별 반품 순위</h2></div>
         <div class="rank-sort">
           <span class="rank-sort-label">정렬</span>
           <div class="chip rf active" data-rf="cnt">건수순</div>
-          <div class="chip rf" data-rf="amt">금액순</div>
-          <div class="chip rf" data-rf="rate">환불률순</div>
+          <div class="chip rf" data-rf="rate">반품률순</div>
         </div>
       </div>
-      <table id="refundTable"><thead><tr><th>상품</th><th>시리즈</th><th>환불건수</th><th>환불금액</th><th>환불률</th><th class="bar-cell">비중</th></tr></thead><tbody></tbody></table>
+      <table id="refundTable"><thead><tr><th>상품</th><th>시리즈</th><th>반품건수</th><th>반품률</th><th class="bar-cell">비중</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
 
@@ -247,7 +246,7 @@ let RAW=SEED.map(normalize);
 let cafe24Rows=null, naverRows=null, lastProcessed=null;
 let activeBrand='all',activeMonth='all',activeCh='all',metric='rev';
 let rankSort='rev'; // 순위표 정렬 기준 (매출/판매량) — 상단 보기와 독립
-let refundSort='cnt'; // 환불 순위 정렬 (건수/금액/환불률)
+let refundSort='cnt'; // 반품 순위 정렬 (건수/반품률)
 let colorSeries=null; // 컬러별 성과 카드 전용 시리즈 필터 (null=전체)
 let selectedSeries=null;
 let cumRows=[];
@@ -326,19 +325,19 @@ function renderColor(rows){charts.color&&charts.color.destroy();let cr=rows;if(c
 function renderChannel(rows){charts.channel&&charts.channel.destroy();const agg={};rows.forEach(d=>agg[d.channel]=(agg[d.channel]||0)+val(d));const labels=Object.keys(agg);charts.channel=new Chart(document.getElementById('channelChart'),{type:'doughnut',data:{labels,datasets:[{data:labels.map(k=>agg[k]),backgroundColor:labels.map(k=>CH[k]||'#8a8a8a'),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,font:{size:12},padding:14}},tooltip:{callbacks:{label:c=>{const t=c.dataset.data.reduce((a,b)=>a+b,0);return c.label+': '+fmtMetric(c.parsed)+' ('+(c.parsed/t*100).toFixed(1)+'%)';}}}}}});}
 function renderRank(rows){const agg={};rows.forEach(d=>{const k=d.product+'||'+d.color;if(!agg[k])agg[k]={product:d.product,color:d.color,qty:0,rev:0};agg[k].qty+=d.qty;agg[k].rev+=d.rev;});const rv=r=>rankSort==='rev'?r.rev:r.qty;const arr=Object.values(agg).sort((a,b)=>rv(b)-rv(a));const max=arr.length?rv(arr[0]):1;document.querySelector('#rankTable tbody').innerHTML=arr.map((r,i)=>`<tr><td><span class="rank-num ${i===0?'top':''}">${String(i+1).padStart(2,'0')}</span>${r.product}</td><td><span class="swatch" style="background:${COLOR_SWATCH[r.color]||'#8a8a8a'}"></span>${r.color}</td><td>${won(r.qty)}개</td><td>${won(r.rev)}원</td><td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${(rv(r)/max*100).toFixed(0)}%"></div></div></td></tr>`).join('');}
 function renderAll(){const all=scoped();const rows=all.filter(d=>d.status==='판매');const refunds=all.filter(d=>d.status==='환불');renderKPIs(rows);cumRows=rows;buildCumSelect();renderCumulative(rows);buildColorSeriesSelect();renderColor(rows);renderChannel(rows);renderRank(rows);renderRefundRank(refunds,rows);const dates=[...new Set(RAW.map(d=>d.date))].sort();document.getElementById('lastUpdate').textContent=dates.length?dates[0]+' ~ '+dates[dates.length-1]:'—';document.getElementById('rowCount').textContent=RAW.length+'개 행';}
-// 환불 순위 (건수/금액/환불률). saleRows로 환불률 분모 계산
+// 반품 순위 (건수/반품률). saleRows로 반품률 분모 계산
 function renderRefundRank(refunds,saleRows){
-  // 상품(7자리) 단위 집계. 환불률 = 환불건수 / (환불건수 + 판매건수)
+  // 상품(7자리) 단위 집계. 반품률 = 반품건수 / (반품건수 + 판매건수)
   const agg={};
   refunds.forEach(d=>{const k=d.prod7||d.product;if(!agg[k])agg[k]={product:d.product,series:d.series,cnt:0,amt:0};agg[k].cnt+=1;agg[k].amt+=(d.refund||d.rev||0);});
   const saleCnt={};saleRows.forEach(d=>{const k=d.prod7||(d.barcode?d.barcode.slice(0,7):d.product);saleCnt[k]=(saleCnt[k]||0)+1;});
   const arr=Object.entries(agg).map(([k,v])=>{const sc=saleCnt[k]||0;return{...v,rate:(v.cnt/(v.cnt+sc)*100)};});
-  const rv=r=>refundSort==='amt'?r.amt:refundSort==='rate'?r.rate:r.cnt;
+  const rv=r=>refundSort==='rate'?r.rate:r.cnt;
   arr.sort((a,b)=>rv(b)-rv(a));
   const max=arr.length?rv(arr[0]):1;
   const body=document.querySelector('#refundTable tbody');
-  if(!arr.length){body.innerHTML='<tr><td colspan="6" style="text-align:center;color:#8a8a8a;padding:20px;">환불 데이터가 없어요</td></tr>';return;}
-  body.innerHTML=arr.map((r,i)=>`<tr><td><span class="rank-num ${i===0?'top':''}">${String(i+1).padStart(2,'0')}</span>${r.product}</td><td style="color:#8a8a8a;font-size:12px;">${r.series||''}</td><td>${won(r.cnt)}건</td><td>${won(r.amt)}원</td><td>${r.rate.toFixed(1)}%</td><td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${(rv(r)/max*100).toFixed(0)}%;background:#c62828;"></div></div></td></tr>`).join('');
+  if(!arr.length){body.innerHTML='<tr><td colspan="5" style="text-align:center;color:#8a8a8a;padding:20px;">반품 데이터가 없어요</td></tr>';return;}
+  body.innerHTML=arr.map((r,i)=>`<tr><td><span class="rank-num ${i===0?'top':''}">${String(i+1).padStart(2,'0')}</span>${r.product}</td><td style="color:#8a8a8a;font-size:12px;">${r.series||''}</td><td>${won(r.cnt)}건</td><td>${r.rate.toFixed(1)}%</td><td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${(rv(r)/max*100).toFixed(0)}%;background:#c62828;"></div></div></td></tr>`).join('');
 }
 
 document.querySelectorAll('.chip.ch').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.chip.ch').forEach(x=>x.classList.remove('active'));c.classList.add('active');activeCh=c.dataset.ch;renderAll();}));
