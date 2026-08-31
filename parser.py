@@ -293,46 +293,59 @@ def parse_naver_refund(path, channel, by11, by7, col, L, report):
             col.add('환불', channel, ordnum, p7, by7[p7], 1, 0, 0, date_str)
 
 def parse_29cm(path, channel, by11, col, report):
+    """29CM. 판매/반품 파일 공통(단일 시트, 헤더 이름 기반). 컬럼 위치 변동에 견고."""
+    import os
     wb = load_xlsx(path)
-    # 주문목록(헤더1행) + 반품_상세(있으면)
-    ws = pick_sheet(wb, ['주문목록'])
+    ws = pick_sheet(wb, ['주문목록'])          # 없으면 첫 시트(Sheet1)
     rows = list(ws.iter_rows(values_only=True))
-    # 컬럼: 0 주문번호,1 주문상태,6 상품명,9 풀바코드,12 수량,17 실판매액,21 주문일시
-    for r in rows[1:]:
-        if not r or r[0] is None:
+    if not rows:
+        return
+    hidx = 0
+    for k in range(min(5, len(rows))):
+        if header_index(rows[k], '주문번호') is not None:
+            hidx = k; break
+    hdr = rows[hidx]
+    i_ord  = header_index(hdr, '주문번호')
+    i_stat = header_index(hdr, '주문상태')
+    i_bc   = header_index(hdr, '풀바코드')
+    i_qty  = header_index(hdr, '수량')
+    i_sale = header_index(hdr, '실판매액')       # '실 판매액'(공백무시) 매칭
+    if i_sale is None:
+        i_sale = header_index(hdr, '판매액')
+    i_date = header_index(hdr, '주문일시')
+    if None in (i_ord, i_stat, i_bc):
+        report.setdefault('warn', []).append('29cm 헤더 컬럼 누락: %s' % path)
+        return
+    is_refund_file = '반품' in os.path.basename(path)
+    def cell(r, i):
+        return r[i] if (i is not None and i < len(r)) else None
+    for r in rows[hidx + 1:]:
+        if not r or cell(r, i_ord) is None:
             continue
-        ordnum = str(r[0]).strip()
-        stat = str(r[1]).strip() if len(r) > 1 and r[1] else ''
-        bc = str(r[9]).strip() if len(r) > 9 and r[9] else ''
-        qty = toint(r[12]) if len(r) > 12 else 0
-        sale = toint(r[17]) if len(r) > 17 else 0
-        date = parse_date_cell(r[21]) if len(r) > 21 else ''
+        ordnum = str(cell(r, i_ord)).strip()
+        if not ordnum:
+            continue
+        stat = str(cell(r, i_stat) or '').strip()
+        bc = str(cell(r, i_bc) or '').strip()
+        date = parse_date_cell(cell(r, i_date))
+        if not date:
+            digits = ''.join(ch for ch in ordnum if ch.isdigit())
+            if len(digits) >= 8:
+                date = norm_date_from_num(digits[:8])
         match = (len(bc) == 11 and bc in by11)
-        if stat == '교환':
+        if not match:
             continue
-        if stat in ('취소', '반품', '준비중취소'):
-            if match:
-                col.add('환불', channel, ordnum, bc[:7], by11[bc], 1, 0, 0, date)
+        if '교환' in stat:
+            continue
+        if ('취소' in stat) or ('반품' in stat) or ('환불' in stat):
+            col.add('환불', channel, ordnum, bc[:7], by11[bc], 1, 0, 0, date)
         else:
-            if match and qty > 0 and sale > 0:
+            if is_refund_file:
+                continue                          # 반품 파일의 정상건은 판매로 넣지 않음
+            qty = toint(cell(r, i_qty))
+            sale = toint(cell(r, i_sale))
+            if qty > 0 and sale > 0:
                 col.add('판매', channel, ordnum, bc[:7], by11[bc], qty, sale, 0, date, barcode=bc)
-    # 반품_상세 시트(있으면): 0열 '바코드' 11자리 일치시 환불(주문목록 취소/반품과 dedup됨)
-    if '반품_상세' in wb.sheetnames:
-        ws2 = wb['반품_상세']
-        rows2 = list(ws2.iter_rows(values_only=True))
-        if rows2:
-            hdr2 = rows2[0]
-            i_bc = header_index(hdr2, '바코드')
-            i_bc = 0 if i_bc is None else i_bc
-            i_ord2 = header_index(hdr2, '주문번호')
-            for r in rows2[1:]:
-                if not r or i_bc >= len(r) or r[i_bc] is None:
-                    continue
-                bc = str(r[i_bc]).strip()
-                if len(bc) != 11 or bc not in by11:
-                    continue
-                ordnum = str(r[i_ord2]).strip() if (i_ord2 is not None and i_ord2 < len(r) and r[i_ord2]) else ''
-                col.add('환불', channel, ordnum, bc[:7], by11[bc], 1, 0, 0, '')
 
 def parse_musinsa(path, channel, by11, col, report):
     # 주문번호 정밀도 유지를 위해 문자열로 취급
