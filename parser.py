@@ -225,7 +225,11 @@ def parse_cafe24(path, channel, by11, col, report):
             continue
         info = by11[bc]
         p7 = bc[:7]
-        if cxl == '취소안함':
+        if cxl == '취소안함' and refund > 0:
+            # 반품(배송 후 환불): 취소구분은 '취소안함'이나 실제 환불금액이 있음 -> 환불로 처리
+            # (월요일 환불 export에 섞여 들어옴; 판매로 넣으면 배송비/0원 판매가 중복 생김)
+            col.add('환불', channel, ordnum, p7, info, 1, 0, refund, date)
+        elif cxl == '취소안함':
             col.add('판매', channel, ordnum, p7, info, qty, pay, 0, date, barcode=bc)
         elif cxl in ('취소', '부분취소'):
             col.add('환불', channel, ordnum, p7, info, 1, 0, refund, date)
